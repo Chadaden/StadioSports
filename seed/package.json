@@ -1,0 +1,10 @@
+{
+  "name": "stadio-seed",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "description": "Firestore seed script for STADIO National Sports Day 2026",
+  "main": "seed.js",
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  }
+}

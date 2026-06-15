@@ -1,0 +1,11 @@
+{
+  "name": "STADIO Sports Day",
+  "short_name": "STADIO Hub",
+  "theme_color": "#3BB1E5",
+  "background_color": "#F5F6F7",
+  "display": "standalone",
+  "start_url": "/",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

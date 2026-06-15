@@ -1,13 +1,13 @@
 {
-  "name": "vite-project",
+  "name": "stadio-sports-day",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "seed": "cd seed && node seed.js"
   },
   "dependencies": {
     "firebase": "^12.14.0",

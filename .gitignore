@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Local env (use .env.example as the template)
+.env
+seed/serviceAccount.json
+
 # Claude Code agent worktrees / local state
 .claude/
 
