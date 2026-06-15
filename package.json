@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "seed": "cd seed && node seed.js"
+    "seed": "cd seed && node seed.js",
+    "seed:client": "node scripts/seed-client.mjs"
   },
   "dependencies": {
     "firebase": "^12.14.0",
