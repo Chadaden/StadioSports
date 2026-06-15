@@ -9,10 +9,10 @@
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  addDoc, collection, doc, onSnapshot, query, serverTimestamp, updateDoc,
+  addDoc, collection, doc, onSnapshot, query, serverTimestamp, updateDoc, writeBatch,
 } from 'firebase/firestore'
 import { db, EVENT_ID, isFirebaseConfigured } from '../firebase/config'
-import { buildSeedSnapshot } from '../data/seed'
+import { buildSeedSnapshot, MILESTONES } from '../data/seed'
 
 const DataContext = createContext(null)
 
@@ -134,6 +134,93 @@ export function DataProvider({ children }) {
         writeSport(fixtureId, sport, (s) => ({ ...s, status: 'final' })),
       reopenSport: (fixtureId, sport) =>
         writeSport(fixtureId, sport, (s) => ({ ...s, status: 'live' })),
+
+      // ---- Phase 3: Team Manager actions (§3, §6) -------------------------
+      // Scoped strictly to the manager's own teamId in both live and demo mode.
+
+      // Toggle one player present/absent
+      togglePresent: (teamId, playerId, current) => {
+        if (isFirebaseConfigured) {
+          return updateDoc(
+            doc(db, 'events', EVENT_ID, 'teams', teamId, 'players', playerId),
+            { present: !current },
+          )
+        }
+        setSnapshot((prev) => ({
+          ...prev,
+          teams: prev.teams.map((t) =>
+            t.id !== teamId ? t : {
+              ...t,
+              players: t.players.map((p) =>
+                p.id !== playerId ? p : { ...p, present: !current },
+              ),
+            },
+          ),
+        }))
+      },
+
+      // Mark all players on a team present at once (§5.4 one-tap shortcut)
+      markAllPresent: (teamId) => {
+        if (isFirebaseConfigured) {
+          const batch = writeBatch(db)
+          const tSnap = (snapRef.current?.teams || []).find((t) => t.id === teamId)
+          for (const p of tSnap?.players || []) {
+            batch.update(
+              doc(db, 'events', EVENT_ID, 'teams', teamId, 'players', p.id),
+              { present: true },
+            )
+          }
+          // Also update attendance summary on travel doc
+          batch.update(
+            doc(db, 'events', EVENT_ID, 'travel', teamId),
+            { 'attendance.present': (tSnap?.players || []).length, 'attendance.markedAllAt': serverTimestamp() },
+          )
+          return batch.commit()
+        }
+        setSnapshot((prev) => {
+          const team = prev.teams.find((t) => t.id === teamId)
+          const total = team?.players?.length || 0
+          return {
+            ...prev,
+            teams: prev.teams.map((t) =>
+              t.id !== teamId ? t : {
+                ...t,
+                players: t.players.map((p) => ({ ...p, present: true })),
+              },
+            ),
+            travel: {
+              ...prev.travel,
+              [teamId]: {
+                ...prev.travel[teamId],
+                attendance: { present: total, total, markedAllAt: new Date().toISOString() },
+              },
+            },
+          }
+        })
+      },
+
+      // Advance the travel milestone one step (§6 milestone rail)
+      advanceMilestone: (teamId) => {
+        const cur = snapRef.current?.travel?.[teamId]?.milestone
+        const idx = MILESTONES.indexOf(cur)
+        const next = idx < MILESTONES.length - 1 ? MILESTONES[idx + 1] : cur
+        const arrived = next === 'arrived'
+        const update = {
+          milestone: next,
+          status: arrived ? 'checked_in' : 'in_transit',
+          updatedAt: isFirebaseConfigured ? serverTimestamp() : new Date().toISOString(),
+        }
+        if (isFirebaseConfigured) {
+          return updateDoc(doc(db, 'events', EVENT_ID, 'travel', teamId), update)
+        }
+        setSnapshot((prev) => ({
+          ...prev,
+          travel: {
+            ...prev.travel,
+            [teamId]: { ...prev.travel[teamId], ...update },
+          },
+        }))
+      },
 
       postAnnouncement: (body) => {
         const text = body.trim()

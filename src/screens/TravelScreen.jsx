@@ -1,9 +1,11 @@
 import { useData } from '../store/DataProvider'
 import { Crest } from '../components/ui'
 import { MILESTONES, MILESTONE_LABELS } from '../data/seed'
+import ManagerControls from './ManagerControls'
 
 // TRAVEL tab (§6): control tower. Travelling teams show a milestone rail;
 // local teams collapse to "Squad present". Viewer sees read-only status.
+// The owning Team Manager sees the attendance register + milestone-advance (§3).
 export default function TravelScreen() {
   const { travel = {}, teams = [] } = useData()
 
@@ -76,6 +78,9 @@ function TravelCard({ team, state }) {
         <span className="muted" style={{ fontSize: 12, fontWeight: 700 }}>Attendance register</span>
         <span className="att-num">{att.present} / {att.total} present</span>
       </div>
+
+      {/* Manager-only controls — renders nothing for Viewer / Scorekeeper (§3) */}
+      <ManagerControls team={team} travelState={state} />
     </div>
   )
 }

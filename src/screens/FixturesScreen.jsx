@@ -3,10 +3,11 @@ import { useIsScorekeeper } from '../store/RoleContext'
 import { Crest, StatusChip } from '../components/ui'
 import { SPORT_GLYPH } from '../lib/constants'
 import ScorekeeperControls from './ScorekeeperControls'
+import { MancoReportButton } from './MancoReport'
 
 // FIXTURES tab (§6): all eight matches in time order, each showing the pairing
 // and the soccer + netball lines. Viewer is read-only; the Scorekeeper sees
-// inline live-scoring controls on each match.
+// inline live-scoring controls on each match plus the MANCO report button.
 export default function FixturesScreen() {
   const { fixtures = [] } = useData()
   const teams = useTeamMap()
@@ -15,9 +16,12 @@ export default function FixturesScreen() {
   return (
     <>
       {isScorekeeper && (
-        <div className="card tight sk-banner">
-          🎛️ Scorekeeper mode — tap to score live. Changes appear instantly for everyone.
-        </div>
+        <>
+          <MancoReportButton />
+          <div className="card tight sk-banner">
+            🎛️ Scorekeeper mode — tap to score live. Changes appear instantly for everyone.
+          </div>
+        </>
       )}
       {fixtures.map((f) => (
         <FixtureCard key={f.id} fixture={f} teams={teams} showControls={isScorekeeper} />

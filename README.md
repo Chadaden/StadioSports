@@ -14,9 +14,9 @@ Built to the project's `BUILD SPEC`. Section references below (§) point at it.
 | **0** | Scaffold, STADIO design system (§4), Firestore schema (§7), PWA shell, seed data | ✅ Done |
 | **1** | **Viewer** (public, read-only): Live · Fixtures · Table · Travel · Schedule + Squads | ✅ Done |
 | **2** | **Scorekeeper**: live score steppers, scorers, cards, publish/reopen, announcements | ✅ Done |
-| 3 | Team Manager (attendance register, travel milestones — own team) | ⏳ Next |
-| 4 | MANCO report (one-tap assembly + PDF) | ⏳ |
-| 5 | Offline persistence polish, QR + 3 role links, deploy | ⏳ |
+| **3** | **Team Manager**: per-player attendance toggle, "mark all present", milestone-advance | ✅ Done |
+| **4** | **MANCO report**: one-tap assembly from Firestore + PDF export | ✅ Done |
+| 5 | Offline persistence polish, QR + 3 role links, deploy | ⏳ Next |
 
 ## Demo mode vs live mode
 
@@ -33,11 +33,12 @@ npm install
 npm run dev        # demo mode — open the printed URL
 ```
 
-### Going live
+### Going live (full deploy)
 1. Create a Firebase project (Firestore + Auth + Hosting).
-2. `cp .env.example .env.local` and fill in the config values.
-3. `node scripts/seed-firestore.mjs` to seed the event.
-4. Deploy `firestore.rules` and `npm run build` + `firebase deploy`.
+2. `cp .env.example .env.local` — fill in the `VITE_FIREBASE_*` config values.
+3. Update `.firebaserc` with your Firebase project ID.
+4. `node scripts/seed-firestore.mjs` to seed the event and Durbanville roster.
+5. `npm run build` then `firebase deploy` — deploys hosting + Firestore rules.
 
 ## Three roles, three links (§3)
 
