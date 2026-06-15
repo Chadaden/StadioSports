@@ -13,8 +13,8 @@ Built to the project's `BUILD SPEC`. Section references below (§) point at it.
 |------|-------|--------|
 | **0** | Scaffold, STADIO design system (§4), Firestore schema (§7), PWA shell, seed data | ✅ Done |
 | **1** | **Viewer** (public, read-only): Live · Fixtures · Table · Travel · Schedule + Squads | ✅ Done |
-| 2 | Scorekeeper (live scoring, scorers, cards, announcements, report) | ⏳ Next |
-| 3 | Team Manager (attendance register, travel milestones — own team) | ⏳ |
+| **2** | **Scorekeeper**: live score steppers, scorers, cards, publish/reopen, announcements | ✅ Done |
+| 3 | Team Manager (attendance register, travel milestones — own team) | ⏳ Next |
 | 4 | MANCO report (one-tap assembly + PDF) | ⏳ |
 | 5 | Offline persistence polish, QR + 3 role links, deploy | ⏳ |
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import { DataProvider, useData } from './store/DataProvider'
+import { RoleProvider } from './store/RoleContext'
 import AppHeader from './components/AppHeader'
 import BottomTabBar from './components/BottomTabBar'
 import LiveScreen from './screens/LiveScreen'
@@ -60,8 +61,10 @@ function Shell() {
 
 export default function App() {
   return (
-    <DataProvider>
-      <Shell />
-    </DataProvider>
+    <RoleProvider>
+      <DataProvider>
+        <Shell />
+      </DataProvider>
+    </RoleProvider>
   )
 }

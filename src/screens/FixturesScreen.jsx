@@ -1,17 +1,26 @@
 import { useData, useTeamMap } from '../store/DataProvider'
+import { useIsScorekeeper } from '../store/RoleContext'
 import { Crest, StatusChip } from '../components/ui'
 import { SPORT_GLYPH } from '../lib/constants'
+import ScorekeeperControls from './ScorekeeperControls'
 
 // FIXTURES tab (§6): all eight matches in time order, each showing the pairing
-// and the soccer + netball lines. Read-only for the Viewer.
+// and the soccer + netball lines. Viewer is read-only; the Scorekeeper sees
+// inline live-scoring controls on each match.
 export default function FixturesScreen() {
   const { fixtures = [] } = useData()
   const teams = useTeamMap()
+  const isScorekeeper = useIsScorekeeper()
 
   return (
     <>
+      {isScorekeeper && (
+        <div className="card tight sk-banner">
+          🎛️ Scorekeeper mode — tap to score live. Changes appear instantly for everyone.
+        </div>
+      )}
       {fixtures.map((f) => (
-        <FixtureCard key={f.id} fixture={f} teams={teams} />
+        <FixtureCard key={f.id} fixture={f} teams={teams} showControls={isScorekeeper} />
       ))}
     </>
   )
@@ -19,7 +28,7 @@ export default function FixturesScreen() {
 
 const ROUND_LABEL = { roundRobin: 'Round robin', playoff: '3rd / 4th playoff', final: 'Final' }
 
-function FixtureCard({ fixture, teams }) {
+function FixtureCard({ fixture, teams, showControls }) {
   const home = teams[fixture.homeTeamId]
   const away = teams[fixture.awayTeamId]
   // Overall card status = the more advanced of the two sports.
@@ -55,6 +64,8 @@ function FixtureCard({ fixture, teams }) {
           )
         })}
       </div>
+
+      {showControls && <ScorekeeperControls fixture={fixture} />}
     </div>
   )
 }

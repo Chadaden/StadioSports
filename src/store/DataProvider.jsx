@@ -7,8 +7,10 @@
 //            fully usable with no backend. Identical shape to live mode, so
 //            screens never branch on which mode they're in.
 
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { collection, doc, onSnapshot, query } from 'firebase/firestore'
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  addDoc, collection, doc, onSnapshot, query, serverTimestamp, updateDoc,
+} from 'firebase/firestore'
 import { db, EVENT_ID, isFirebaseConfigured } from '../firebase/config'
 import { buildSeedSnapshot } from '../data/seed'
 
@@ -19,6 +21,11 @@ export function DataProvider({ children }) {
     isFirebaseConfigured ? null : buildSeedSnapshot(),
   )
   const [loading, setLoading] = useState(isFirebaseConfigured)
+
+  // Latest snapshot kept in a ref so write actions read fresh state without
+  // recreating their closures on every render.
+  const snapRef = useRef(snapshot)
+  useEffect(() => { snapRef.current = snapshot }, [snapshot])
 
   useEffect(() => {
     if (!isFirebaseConfigured) return // demo mode: static snapshot, nothing to subscribe
@@ -79,9 +86,77 @@ export function DataProvider({ children }) {
     return () => unsubs.forEach((u) => u())
   }, [])
 
+  // -------------------------------------------------------------------------
+  // Write actions (Phase 2 Scorekeeper, §8). Each works in both modes:
+  //   live  → write to Firestore; the onSnapshot listeners reflect it back
+  //   demo  → mutate the local snapshot so the experience is fully testable.
+  // Security rules (§3) enforce who may call these in live mode; the link
+  // gates it in demo mode (§7 MVP shortcut).
+  // -------------------------------------------------------------------------
+  const actions = useMemo(() => {
+    const fixtureRef = (id) => doc(db, 'events', EVENT_ID, 'fixtures', id)
+
+    // Compute the new sport object from current state, then persist whole field.
+    const writeSport = (fixtureId, sport, mutate) => {
+      const fx = (snapRef.current?.fixtures || []).find((f) => f.id === fixtureId)
+      if (!fx) return
+      const nextSport = mutate({ ...fx[sport], scorers: [...(fx[sport].scorers || [])], cards: [...(fx[sport].cards || [])] })
+      if (isFirebaseConfigured) {
+        return updateDoc(fixtureRef(fixtureId), { [sport]: nextSport })
+      }
+      setSnapshot((prev) => ({
+        ...prev,
+        fixtures: prev.fixtures.map((f) => (f.id === fixtureId ? { ...f, [sport]: nextSport } : f)),
+      }))
+    }
+
+    return {
+      // begin a sport on a fixture (upcoming → live)
+      startSport: (fixtureId, sport) =>
+        writeSport(fixtureId, sport, (s) => ({ ...s, status: 'live' })),
+
+      // +/- score (also auto-starts an upcoming match on first tap)
+      adjustScore: (fixtureId, sport, side, delta) =>
+        writeSport(fixtureId, sport, (s) => ({
+          ...s,
+          status: s.status === 'upcoming' ? 'live' : s.status,
+          [side]: Math.max(0, (s[side] || 0) + delta),
+        })),
+
+      addScorer: (fixtureId, sport, scorer) =>
+        writeSport(fixtureId, sport, (s) => ({ ...s, scorers: [...s.scorers, scorer] })),
+
+      addCard: (fixtureId, sport, card) =>
+        writeSport(fixtureId, sport, (s) => ({ ...s, cards: [...s.cards, card] })),
+
+      // publish (live → final, locks) / reopen (final → live)
+      publishSport: (fixtureId, sport) =>
+        writeSport(fixtureId, sport, (s) => ({ ...s, status: 'final' })),
+      reopenSport: (fixtureId, sport) =>
+        writeSport(fixtureId, sport, (s) => ({ ...s, status: 'live' })),
+
+      postAnnouncement: (body) => {
+        const text = body.trim()
+        if (!text) return
+        if (isFirebaseConfigured) {
+          return addDoc(collection(db, 'events', EVENT_ID, 'announcements'), {
+            body: text, createdAt: serverTimestamp(),
+          })
+        }
+        setSnapshot((prev) => ({
+          ...prev,
+          announcements: [
+            { id: `a-${Date.now()}`, body: text, createdAt: new Date().toISOString() },
+            ...prev.announcements,
+          ],
+        }))
+      },
+    }
+  }, [])
+
   const value = useMemo(
-    () => ({ ...(snapshot || {}), loading, isLive: isFirebaseConfigured }),
-    [snapshot, loading],
+    () => ({ ...(snapshot || {}), loading, isLive: isFirebaseConfigured, actions }),
+    [snapshot, loading, actions],
   )
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>

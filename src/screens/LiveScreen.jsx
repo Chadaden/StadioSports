@@ -1,12 +1,16 @@
+import { useState } from 'react'
 import { useData, useTeamMap } from '../store/DataProvider'
+import { useIsScorekeeper } from '../store/RoleContext'
 import { Crest, LiveBadge, EmptyState, SectionLabel } from '../components/ui'
 import { SPORT_GLYPH } from '../lib/constants'
 
 // LIVE tab (§6): hero for the in-progress pairing (both sports), "Up next",
-// then the announcements feed. Read-only for the Viewer.
+// then the announcements feed. Viewer is read-only; the Scorekeeper can post
+// announcements to the feed.
 export default function LiveScreen({ onOpenSquads }) {
   const { fixtures = [], event, announcements = [] } = useData()
   const teams = useTeamMap()
+  const isScorekeeper = useIsScorekeeper()
 
   const liveFx = fixtures.find((f) => f.soccer?.status === 'live' || f.netball?.status === 'live')
   const upNext = fixtures
@@ -43,6 +47,7 @@ export default function LiveScreen({ onOpenSquads }) {
       </button>
 
       <SectionLabel>Announcements</SectionLabel>
+      {isScorekeeper && <AnnouncementComposer />}
       <div className="card">
         {announcements.length ? (
           announcements.map((a) => (
@@ -123,6 +128,26 @@ function UpNextCard({ fixture, teams }) {
         <Crest team={away} size="sm" />
         <span className="fx-time" style={{ marginLeft: 'auto' }}>{fixture.slotTime}</span>
       </div>
+    </div>
+  )
+}
+
+function AnnouncementComposer() {
+  const { actions } = useData()
+  const [body, setBody] = useState('')
+  const submit = () => {
+    actions.postAnnouncement(body)
+    setBody('')
+  }
+  return (
+    <div className="card tight ann-composer">
+      <textarea
+        rows={2}
+        placeholder="Post an announcement to the feed…"
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+      />
+      <button disabled={!body.trim()} onClick={submit}>Post</button>
     </div>
   )
 }
