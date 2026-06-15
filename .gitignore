@@ -10,6 +10,7 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+.firebase/
 *.local
 
 # Local env (use .env.example as the template)
