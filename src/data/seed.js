@@ -147,7 +147,7 @@ export const travel = {
 export const announcements = [
   {
     id: 'a1',
-    body: 'Welcome to STADIO National Sports Day at Centurion Campus. Follow live scores, standings and squad travel right here.',
+    body: 'Welcome to STADIO National Sports Day at Centurion Campus. Follow live scores, fixtures and standings right here.',
     createdAt: '2026-08-00T11:30:00',
   },
 ]
