@@ -1,16 +1,23 @@
-// Persistent bottom tab bar (§6 shared nav · §5.3 thumb zone).
-const TABS = [
+import { useRole } from '../store/RoleContext'
+
+// Persistent bottom tab bar (§5.3 thumb zone).
+// Travel is an organiser tab — hidden from the public Viewer (§3).
+const ALL_TABS = [
   { id: 'live', label: 'Live', glyph: '📡' },
   { id: 'fixtures', label: 'Fixtures', glyph: '🗒️' },
   { id: 'table', label: 'Table', glyph: '🏆' },
-  { id: 'travel', label: 'Travel', glyph: '🚌' },
+  { id: 'travel', label: 'Travel', glyph: '🚌', organiserOnly: true },
   { id: 'schedule', label: 'Schedule', glyph: '🕒' },
 ]
 
 export default function BottomTabBar({ active, onChange }) {
+  const { role } = useRole()
+  const isOrganiser = role === 'scorekeeper' || role === 'manager'
+  const tabs = ALL_TABS.filter((t) => !t.organiserOnly || isOrganiser)
+
   return (
-    <nav className="tabbar" aria-label="Primary">
-      {TABS.map((t) => (
+    <nav className="tabbar" aria-label="Primary" style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}>
+      {tabs.map((t) => (
         <button
           key={t.id}
           className={active === t.id ? 'active' : ''}
@@ -25,4 +32,4 @@ export default function BottomTabBar({ active, onChange }) {
   )
 }
 
-export { TABS }
+export { ALL_TABS }
