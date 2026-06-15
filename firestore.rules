@@ -1,0 +1,72 @@
+rules_version = '2';
+
+// STADIO National Sports Day — Firestore security rules (build spec §7).
+//
+// Roles via Firebase Auth custom claims: { role: "scorekeeper"|"manager", teamId?: "durbanville" }
+// Viewer is public read with no auth. Write scopes are FULLY ISOLATED:
+// a manager can never edit scores, a scorekeeper can never touch travel (§3).
+//
+// NOTE: this is the clean custom-claims target. The MVP passcode alternative
+// (§7 callout) would gate writes in a Cloud Function instead; either is
+// acceptable for the client test build, but the Viewer must never need login.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function role()      { return request.auth.token.role; }
+    function claimTeam() { return request.auth.token.teamId; }
+    function isScorekeeper() { return request.auth != null && role() == 'scorekeeper'; }
+    function isManagerOf(teamId) {
+      return request.auth != null && role() == 'manager' && claimTeam() == teamId;
+    }
+
+    match /events/{eventId} {
+      // Public, read-only event config.
+      allow read: if true;
+      allow write: if isScorekeeper();
+
+      // Teams + non-PII players: public read.
+      match /teams/{teamId} {
+        allow read: if true;
+        allow write: if isScorekeeper();
+
+        match /players/{playerId} {
+          allow read: if true;
+          // Managers may flip only their own players' attendance (present).
+          allow update: if isManagerOf(teamId)
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                             .hasOnly(['present']);
+          allow create, delete: if isScorekeeper();
+
+          // Restricted PII subcollection — organiser-read only, never public (§9).
+          match /private/{doc} {
+            allow read: if isScorekeeper() || request.auth.token.role == 'manager';
+            allow write: if isScorekeeper();
+          }
+        }
+      }
+
+      // Live scores, scorers, cards — scorekeeper only.
+      match /fixtures/{fixtureId} {
+        allow read: if true;
+        allow write: if isScorekeeper();
+      }
+
+      // Travel + attendance — the owning team's manager only.
+      match /travel/{teamId} {
+        allow read: if true;
+        allow write: if isManagerOf(teamId);
+      }
+
+      // Announcements + generated reports — scorekeeper only.
+      match /announcements/{id} {
+        allow read: if true;
+        allow write: if isScorekeeper();
+      }
+      match /reports/{id} {
+        allow read: if true;
+        allow write: if isScorekeeper();
+      }
+    }
+  }
+}

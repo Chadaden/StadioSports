@@ -1,122 +1,67 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
+import { DataProvider, useData } from './store/DataProvider'
+import AppHeader from './components/AppHeader'
+import BottomTabBar from './components/BottomTabBar'
+import LiveScreen from './screens/LiveScreen'
+import FixturesScreen from './screens/FixturesScreen'
+import TableScreen from './screens/TableScreen'
+import TravelScreen from './screens/TravelScreen'
+import ScheduleScreen from './screens/ScheduleScreen'
+import SquadsScreen from './screens/SquadsScreen'
 
-function App() {
-  const [count, setCount] = useState(0)
+// Phase 1 — the public Viewer. Three-role architecture (§3) is resolved in
+// lib/roles.js; Scorekeeper (Phase 2) and Manager (Phase 3) layer their write
+// controls onto these same screens later. The Viewer shows zero organiser UI.
+function Shell() {
+  const { loading, isLive } = useData()
+  // 'squads' is a sub-view reached from Live, not a bottom tab (§6).
+  const [tab, setTab] = useState('live')
+  const contentRef = useRef(null)
+
+  // UX law §5.1 — every tab lands scrolled to top.
+  useEffect(() => {
+    contentRef.current?.scrollTo(0, 0)
+    window.scrollTo(0, 0)
+  }, [tab])
+
+  if (loading) {
+    return (
+      <div className="app">
+        <AppHeader />
+        <div className="content"><div className="empty"><div className="e-glyph">⏳</div><div className="e-title">Loading live data…</div></div></div>
+      </div>
+    )
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="app">
+      <AppHeader />
+      {!isLive && (
+        <div className="demo-banner">
+          Demo data · connect Firebase to go live
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      )}
+      <main className="content" ref={contentRef}>
+        {tab === 'live' && <LiveScreen onOpenSquads={() => setTab('squads')} />}
+        {tab === 'fixtures' && <FixturesScreen />}
+        {tab === 'table' && <TableScreen />}
+        {tab === 'travel' && <TravelScreen />}
+        {tab === 'schedule' && <ScheduleScreen />}
+        {tab === 'squads' && <SquadsScreen onBack={() => setTab('live')} />}
+      </main>
+      <BottomTabBar
+        active={tab === 'squads' ? 'live' : tab}
+        onChange={setTab}
+      />
+    </div>
   )
 }
 
-export default App
+export default function App() {
+  return (
+    <DataProvider>
+      <Shell />
+    </DataProvider>
+  )
+}
