@@ -25,3 +25,6 @@ dist-ssr
 
 # Private player profiles (POPIA) — never commit; see src/data/privateProfiles.example.js
 src/data/privateProfiles.local.js
+
+# Firebase CLI local deploy cache
+.firebase/
