@@ -37,12 +37,15 @@ service cloud.firestore {
                         && request.resource.data.diff(resource.data).affectedKeys()
                              .hasOnly(['present']);
           allow create, delete: if isScorekeeper();
+        }
 
-          // Restricted PII subcollection — organiser-read only, never public (§9).
-          match /private/{doc} {
-            allow read: if isScorekeeper() || request.auth.token.role == 'manager';
-            allow write: if isScorekeeper();
-          }
+        // Restricted PII (emergency contacts, medical, dietary) — one doc per
+        // player, readable ONLY by the owning team's manager or the organiser.
+        // Never publicly readable (§9). Team-level so the manager app needs a
+        // single collection listener.
+        match /private/{playerId} {
+          allow read: if isScorekeeper() || isManagerOf(teamId);
+          allow write: if isScorekeeper();
         }
       }
 

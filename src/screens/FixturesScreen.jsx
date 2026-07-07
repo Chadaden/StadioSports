@@ -2,6 +2,7 @@ import { useData, useTeamMap } from '../store/DataProvider'
 import { useIsScorekeeper } from '../store/RoleContext'
 import { Crest, StatusChip } from '../components/ui'
 import { SPORT_GLYPH } from '../lib/constants'
+import { formatClock, useClockTick } from '../lib/clock'
 import ScorekeeperControls from './ScorekeeperControls'
 import { MancoReportButton } from './MancoReport'
 
@@ -35,6 +36,7 @@ const ROUND_LABEL = { roundRobin: 'Round robin', playoff: '3rd / 4th playoff', f
 function FixtureCard({ fixture, teams, showControls }) {
   const home = teams[fixture.homeTeamId]
   const away = teams[fixture.awayTeamId]
+  const now = useClockTick(fixture.soccer?.clock, fixture.netball?.clock)
   // Overall card status = the more advanced of the two sports.
   const status =
     fixture.soccer?.status === 'live' || fixture.netball?.status === 'live' ? 'live'
@@ -64,10 +66,28 @@ function FixtureCard({ fixture, teams, showControls }) {
             <div className="cell" key={sport}>
               <span className="s-label">{SPORT_GLYPH[sport]} {sport === 'soccer' ? 'Soccer' : 'Netball'}</span>
               <span className="s-val">{show ? `${s.home}–${s.away}` : '—'}</span>
+              {s?.status === 'live' && s.clock && (
+                <span className="s-clock">⏱ {formatClock(s.clock, now)}</span>
+              )}
             </div>
           )
         })}
       </div>
+
+      {/* Viewer goal feed — the scorekeeper panel below has its own richer list */}
+      {!showControls && ['soccer', 'netball'].map((sport) => {
+        const scorers = fixture[sport]?.scorers
+        if (!scorers?.length) return null
+        return (
+          <div className="scorer-feed" key={sport}>
+            {[...scorers].reverse().map((sc, i) => (
+              <span className="ev-chip" key={i}>
+                {SPORT_GLYPH[sport]} {sc.minute ? `${sc.minute}' ` : ''}{sc.name || 'Goal'}
+              </span>
+            ))}
+          </div>
+        )
+      })}
 
       {showControls && <ScorekeeperControls fixture={fixture} />}
     </div>

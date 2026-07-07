@@ -16,6 +16,16 @@ import {
   EVENT_ID, event, teams, players, fixtures, travel, announcements,
 } from '../src/data/seed.js'
 
+// Manager-only profiles live in a GIT-IGNORED local file (public repo — the
+// PII must never be committed; see src/data/privateProfiles.example.js).
+// Seeding still works without it, just without private profiles.
+const playerProfiles = await import('../src/data/privateProfiles.local.js')
+  .then((m) => m.playerProfiles)
+  .catch(() => {
+    console.warn('⚠ src/data/privateProfiles.local.js not found — seeding without private profiles.')
+    return {}
+  })
+
 // Minimal .env.local loader (avoids adding a dotenv dependency).
 function loadEnv() {
   try {
@@ -57,6 +67,11 @@ for (const t of teams) {
   for (const p of players[t.id] || []) {
     const { id, ...pDoc } = p
     batch.set(doc(db, ...base, 'teams', t.id, 'players', id), { ...pDoc, present: false })
+    // Manager-only profile (emergency contact / medical / dietary, §9) —
+    // separate subcollection so the public player doc stays PII-free.
+    if (playerProfiles[id]) {
+      batch.set(doc(db, ...base, 'teams', t.id, 'private', id), playerProfiles[id])
+    }
   }
 }
 for (const f of fixtures) {
@@ -73,5 +88,6 @@ for (const a of announcements) {
 
 await batch.commit()
 console.log(`✓ Seeded event "${eventId}" — ${teams.length} teams, ` +
-  `${Object.values(players).flat().length} players, ${fixtures.length} fixtures.`)
+  `${Object.values(players).flat().length} players ` +
+  `(${Object.keys(playerProfiles).length} private profiles), ${fixtures.length} fixtures.`)
 process.exit(0)

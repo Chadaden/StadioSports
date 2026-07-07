@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import { useData } from '../store/DataProvider'
+import { useRole } from '../store/RoleContext'
 import { Crest, EmptyState } from '../components/ui'
+import PlayerCard from '../components/PlayerCard'
 
 // SQUADS (§6, reached from Live): tabs per team, players listed by sport with
 // role tags. Names / sport / role only — no PII (§7, §9). Teams without a
-// roster show a clean "Roster pending" empty state.
+// roster show a clean "Roster pending" empty state. The manager of the team
+// being viewed can tap a player to open the private details card.
 export default function SquadsScreen({ onBack }) {
   const { teams = [] } = useData()
   const [active, setActive] = useState(teams[0]?.id)
@@ -28,7 +31,13 @@ export default function SquadsScreen({ onBack }) {
 }
 
 function SquadList({ team }) {
+  const { role, teamId } = useRole()
+  const { profiles } = useData()
+  const [openPlayerId, setOpenPlayerId] = useState(null)
   const players = team.players || []
+  // Only the team's own manager gets tappable rows + the private details card.
+  const isOwnManager = role === 'manager' && teamId === team.id
+
   if (!team.rosterLoaded || players.length === 0) {
     return (
       <EmptyState
@@ -44,6 +53,7 @@ function SquadList({ team }) {
     netball: players.filter((p) => p.sport === 'netball'),
     other: players.filter((p) => p.sport == null),
   }
+  const openPlayer = players.find((p) => p.id === openPlayerId)
 
   return (
     <>
@@ -53,29 +63,54 @@ function SquadList({ team }) {
         <span className="chip" style={{ marginLeft: 'auto' }}>{players.length} listed</span>
       </div>
 
-      <SportGroup title="⚽ Soccer" players={bySport.soccer} />
-      <SportGroup title="🏐 Netball" players={bySport.netball} />
-      <SportGroup title="Team staff" players={bySport.other} />
+      {isOwnManager && (
+        <div className="muted" style={{ fontSize: 11.5, margin: '0 2px 10px' }}>
+          Manager view — tap a player for medical & emergency details.
+        </div>
+      )}
+
+      <SportGroup title="⚽ Soccer" players={bySport.soccer} onOpen={isOwnManager ? setOpenPlayerId : null} />
+      <SportGroup title="🏐 Netball" players={bySport.netball} onOpen={isOwnManager ? setOpenPlayerId : null} />
+      <SportGroup title="Team staff" players={bySport.other} onOpen={isOwnManager ? setOpenPlayerId : null} />
+
+      {isOwnManager && openPlayer && (
+        <PlayerCard
+          player={openPlayer}
+          team={team}
+          profile={profiles?.[openPlayer.id]}
+          onClose={() => setOpenPlayerId(null)}
+        />
+      )}
     </>
   )
 }
 
-function SportGroup({ title, players }) {
+function SportGroup({ title, players, onOpen }) {
   if (!players.length) return null
   return (
     <>
       <div className="kicker section-label">{title}</div>
       <div className="card">
-        {players.map((p) => (
-          <div className="squad-player" key={p.id}>
-            <span className="nm">{p.firstName} {p.surname}</span>
-            <span className="tags">
-              {p.isGK && <span className="tag-role tag-gk">GK</span>}
-              {p.role === 'support' && <span className="tag-role">Support</span>}
-              {p.role === 'hoc' && <span className="tag-role">HOC</span>}
-            </span>
-          </div>
-        ))}
+        {players.map((p) => {
+          const inner = (
+            <>
+              <span className="nm">{p.firstName} {p.surname}</span>
+              <span className="tags">
+                {p.isGK && <span className="tag-role tag-gk">GK</span>}
+                {p.role === 'support' && <span className="tag-role">Support</span>}
+                {p.role === 'hoc' && <span className="tag-role">HOC</span>}
+                {onOpen && <span className="muted">›</span>}
+              </span>
+            </>
+          )
+          return onOpen ? (
+            <button className="squad-player squad-open" key={p.id} onClick={() => onOpen(p.id)}>
+              {inner}
+            </button>
+          ) : (
+            <div className="squad-player" key={p.id}>{inner}</div>
+          )
+        })}
       </div>
     </>
   )

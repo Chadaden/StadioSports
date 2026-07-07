@@ -13,14 +13,40 @@ import {
 } from 'firebase/firestore'
 import { db, EVENT_ID, isFirebaseConfigured } from '../firebase/config'
 import { buildSeedSnapshot, MILESTONES } from '../data/seed'
+import { elapsedSeconds } from '../lib/clock'
+import { useRole } from './RoleContext'
 
 const DataContext = createContext(null)
 
 export function DataProvider({ children }) {
+  const { role, teamId: myTeamId } = useRole()
   const [snapshot, setSnapshot] = useState(() =>
     isFirebaseConfigured ? null : buildSeedSnapshot(),
   )
   const [loading, setLoading] = useState(isFirebaseConfigured)
+
+  // Manager-only private profiles (emergency contact / medical / dietary, §9).
+  // Live: one listener on the manager's own team's `private` subcollection —
+  // security rules deny it to everyone else, and no public screen ever loads
+  // it. Demo: lazy-load the GIT-IGNORED local module (separate chunk, manager
+  // role only) — the glob resolves to nothing when the file is absent, so a
+  // fresh clone still builds and managers see "No private details on file".
+  const [profiles, setProfiles] = useState({})
+  useEffect(() => {
+    if (role !== 'manager' || !myTeamId) return
+    if (isFirebaseConfigured) {
+      return onSnapshot(
+        collection(db, 'events', EVENT_ID, 'teams', myTeamId, 'private'),
+        (qs) => setProfiles(Object.fromEntries(qs.docs.map((d) => [d.id, d.data()]))),
+      )
+    }
+    const modules = import.meta.glob('../data/privateProfiles.local.js')
+    const load = modules['../data/privateProfiles.local.js']
+    if (!load) return
+    let alive = true
+    load().then((m) => { if (alive) setProfiles(m.playerProfiles) })
+    return () => { alive = false }
+  }, [role, myTeamId])
 
   // Latest snapshot kept in a ref so write actions read fresh state without
   // recreating their closures on every render.
@@ -111,11 +137,52 @@ export function DataProvider({ children }) {
     }
 
     return {
-      // begin a sport on a fixture (upcoming → live)
+      // Kick-off: upcoming → live and the match clock starts (1st half).
       startSport: (fixtureId, sport) =>
-        writeSport(fixtureId, sport, (s) => ({ ...s, status: 'live' })),
+        writeSport(fixtureId, sport, (s) => ({
+          ...s,
+          status: 'live',
+          clock: { phase: 'h1', runningSince: new Date().toISOString(), baseSeconds: 0 },
+        })),
 
-      // +/- score (also auto-starts an upcoming match on first tap)
+      // Half-time / pause: bank the played seconds, stop ticking.
+      pauseClock: (fixtureId, sport) =>
+        writeSport(fixtureId, sport, (s) => {
+          if (!s.clock?.runningSince) return s
+          return {
+            ...s,
+            clock: {
+              phase: s.clock.phase === 'h1' ? 'ht' : 'paused',
+              runningSince: null,
+              baseSeconds: Math.round(elapsedSeconds(s.clock)),
+            },
+          }
+        }),
+
+      // Start 2nd half / resume: clock ticks again from the banked seconds.
+      resumeClock: (fixtureId, sport) =>
+        writeSport(fixtureId, sport, (s) => {
+          if (!s.clock || s.clock.runningSince) return s
+          return {
+            ...s,
+            clock: {
+              phase: 'h2',
+              runningSince: new Date().toISOString(),
+              baseSeconds: s.clock.baseSeconds || 0,
+            },
+          }
+        }),
+
+      // Goal: bumps the score AND logs the scorer (with the clock minute
+      // captured in the UI at tap time) in one write — pushes to every viewer.
+      addGoal: (fixtureId, sport, side, scorer) =>
+        writeSport(fixtureId, sport, (s) => ({
+          ...s,
+          [side]: (s[side] || 0) + 1,
+          scorers: [...s.scorers, scorer],
+        })),
+
+      // +/- score corrections (also auto-starts an upcoming match on first tap)
       adjustScore: (fixtureId, sport, side, delta) =>
         writeSport(fixtureId, sport, (s) => ({
           ...s,
@@ -123,15 +190,36 @@ export function DataProvider({ children }) {
           [side]: Math.max(0, (s[side] || 0) + delta),
         })),
 
+      // Undo a mis-tapped goal: drops the scorer entry AND the point in the
+      // same write (two separate writes could race each other on stale state).
+      removeGoal: (fixtureId, sport, index) =>
+        writeSport(fixtureId, sport, (s) => {
+          const entry = s.scorers[index]
+          if (!entry) return s
+          const fx = (snapRef.current?.fixtures || []).find((f) => f.id === fixtureId)
+          const side = entry.teamId === fx?.awayTeamId ? 'away' : 'home'
+          return {
+            ...s,
+            [side]: Math.max(0, (s[side] || 0) - 1),
+            scorers: s.scorers.filter((_, i) => i !== index),
+          }
+        }),
+
       addScorer: (fixtureId, sport, scorer) =>
         writeSport(fixtureId, sport, (s) => ({ ...s, scorers: [...s.scorers, scorer] })),
 
       addCard: (fixtureId, sport, card) =>
         writeSport(fixtureId, sport, (s) => ({ ...s, cards: [...s.cards, card] })),
 
-      // publish (live → final, locks) / reopen (final → live)
+      // publish (live → final, locks, clock stops) / reopen (final → live)
       publishSport: (fixtureId, sport) =>
-        writeSport(fixtureId, sport, (s) => ({ ...s, status: 'final' })),
+        writeSport(fixtureId, sport, (s) => ({
+          ...s,
+          status: 'final',
+          clock: s.clock
+            ? { phase: 'ft', runningSince: null, baseSeconds: Math.round(elapsedSeconds(s.clock)) }
+            : null,
+        })),
       reopenSport: (fixtureId, sport) =>
         writeSport(fixtureId, sport, (s) => ({ ...s, status: 'live' })),
 
@@ -242,8 +330,8 @@ export function DataProvider({ children }) {
   }, [])
 
   const value = useMemo(
-    () => ({ ...(snapshot || {}), loading, isLive: isFirebaseConfigured, actions }),
-    [snapshot, loading, actions],
+    () => ({ ...(snapshot || {}), profiles, loading, isLive: isFirebaseConfigured, actions }),
+    [snapshot, profiles, loading, actions],
   )
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>

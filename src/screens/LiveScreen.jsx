@@ -3,6 +3,7 @@ import { useData, useTeamMap } from '../store/DataProvider'
 import { useIsScorekeeper } from '../store/RoleContext'
 import { Crest, LiveBadge, EmptyState, SectionLabel } from '../components/ui'
 import { SPORT_GLYPH } from '../lib/constants'
+import { PHASE_LABELS, formatClock, useClockTick } from '../lib/clock'
 
 // LIVE tab (§6): hero for the in-progress pairing (both sports), "Up next",
 // then the announcements feed. Viewer is read-only; the Scorekeeper can post
@@ -87,20 +88,45 @@ function MatchHero({ fixture, teams, event, live }) {
 }
 
 function SportLine({ sport, data }) {
+  const now = useClockTick(data?.clock)
   const showScore = data?.status === 'live' || data?.status === 'final'
   return (
-    <div className="sportline">
-      <span className="label">{SPORT_GLYPH[sport]} {sport[0].toUpperCase() + sport.slice(1)}</span>
-      <span className="score">
-        {showScore ? (
-          <>{data.home}<span className="dash">–</span>{data.away}</>
-        ) : (
-          <span className="dash" style={{ fontSize: 18 }}>vs</span>
-        )}
-      </span>
-      <span style={{ justifySelf: 'end' }}>
-        {data?.status === 'live' && <span className="chip" style={{ color: 'var(--red)' }}>●</span>}
-      </span>
+    <>
+      <div className="sportline">
+        <span className="label">{SPORT_GLYPH[sport]} {sport[0].toUpperCase() + sport.slice(1)}</span>
+        <span className="score">
+          {showScore ? (
+            <>{data.home}<span className="dash">–</span>{data.away}</>
+          ) : (
+            <span className="dash" style={{ fontSize: 18 }}>vs</span>
+          )}
+        </span>
+        <span style={{ justifySelf: 'end' }}>
+          {data?.status === 'live' && data.clock && (
+            <span className="chip chip-clock">
+              ⏱ {formatClock(data.clock, now)} · {PHASE_LABELS[data.clock.phase] || ''}
+            </span>
+          )}
+          {data?.status === 'live' && !data.clock && (
+            <span className="chip" style={{ color: 'var(--red)' }}>●</span>
+          )}
+        </span>
+      </div>
+      <ScorerFeed sport={sport} scorers={data?.scorers} />
+    </>
+  )
+}
+
+// "20' Jones scored" — every goal the scorekeeper logs, latest first.
+function ScorerFeed({ sport, scorers }) {
+  if (!scorers?.length) return null
+  return (
+    <div className="scorer-feed">
+      {[...scorers].reverse().map((sc, i) => (
+        <span className="ev-chip" key={i}>
+          {SPORT_GLYPH[sport]} {sc.minute ? `${sc.minute}' ` : ''}{sc.name || 'Goal'}
+        </span>
+      ))}
     </div>
   )
 }

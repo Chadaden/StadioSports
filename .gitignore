@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Private player profiles (POPIA) — never commit; see src/data/privateProfiles.example.js
+src/data/privateProfiles.local.js
