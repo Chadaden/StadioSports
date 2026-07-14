@@ -42,9 +42,19 @@
   --status-transit: var(--orange);
   --status-info: var(--sky);
 
+  /* sport accents — used everywhere the two sports sit side by side, so a
+     glance tells them apart (client request, 14 Jul) */
+  --soccer: var(--sky);
+  --netball: var(--pink);
+
   --radius-card: 16px;
   --radius-control: 10px;
   --radius-pill: 999px;
+
+  /* soft elevation — a bit more life than a flat 1px line, still restrained */
+  --shadow-sm: 0 1px 2px rgba(30, 34, 38, 0.05), 0 1px 1px rgba(30, 34, 38, 0.04);
+  --shadow-md: 0 6px 16px rgba(30, 34, 38, 0.07), 0 2px 6px rgba(30, 34, 38, 0.05);
+  --shadow-live: 0 0 0 1px rgba(237, 28, 36, 0.18), 0 8px 20px rgba(237, 28, 36, 0.14);
 
   color-scheme: light;
 }
