@@ -120,7 +120,8 @@ export const players = {
 // Round-robin (m1–m6) → 3rd/4th playoff (m7) → final (m8). Same pairing drives
 // both sports. Pre-event seed: every match "upcoming", no scores. Components
 // fully support live/final so the board lights up when a scorekeeper writes.
-const blankSport = () => ({ status: 'upcoming', home: 0, away: 0, scorers: [], cards: [] })
+// clock: null until kickoff — see src/lib/clock.js for the running-stopwatch shape.
+const blankSport = () => ({ status: 'upcoming', home: 0, away: 0, scorers: [], cards: [], clock: null })
 
 export const fixtures = [
   { id: 'm1', matchNo: 1, slotTime: '11:45', round: 'roundRobin', homeTeamId: 'centurion', awayTeamId: 'musgrave', soccer: blankSport(), netball: blankSport() },

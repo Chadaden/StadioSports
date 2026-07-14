@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useData, useTeamMap } from '../store/DataProvider'
 import { SPORT_GLYPH } from '../lib/constants'
+import { cardRemainingMs, clockElapsedMs, formatClock, matchPhase, useNow } from '../lib/clock'
 
 // Scorekeeper live-scoring panel (§8), rendered inside a fixture card only when
-// role === scorekeeper. Tap-driven (§5.2): +/- steppers, scorer/card pickers,
-// publish/reopen. Writes go through DataProvider actions → live to all viewers.
+// role === scorekeeper. Tap-driven (§5.2): match clock, goal buttons, scorer/card
+// pickers, publish/reopen. Writes go through DataProvider actions → live to all viewers.
 export default function ScorekeeperControls({ fixture }) {
   // Bracket fixtures (playoff/final) have no teams until the day — skip.
   if (!fixture.homeTeamId || !fixture.awayTeamId) {
@@ -27,9 +28,13 @@ function SportControls({ fixture, sport }) {
   const away = teams[fixture.awayTeamId]
   const [picker, setPicker] = useState(null) // 'scorer' | 'card' | null
 
+  const locked = s.status === 'final'
+  const anyCardTicking = (s.cards || []).some((c) => cardRemainingMs(c) > 0)
+  const now = useNow(!locked && (s.clock?.running || anyCardTicking))
+
   if (s.status === 'upcoming') {
     return (
-      <div className="sk-sport">
+      <div className={`sk-sport sk-sport-${sport}`}>
         <div className="sk-head"><span>{SPORT_GLYPH[sport]} {cap(sport)}</span><span className="chip chip-upcoming">Upcoming</span></div>
         <button className="sk-start" onClick={() => actions.startSport(fixture.id, sport)}>
           ▶ Start {sport}
@@ -38,10 +43,8 @@ function SportControls({ fixture, sport }) {
     )
   }
 
-  const locked = s.status === 'final'
-
   return (
-    <div className="sk-sport">
+    <div className={`sk-sport sk-sport-${sport}`}>
       <div className="sk-head">
         <span>{SPORT_GLYPH[sport]} {cap(sport)}</span>
         {locked
@@ -49,13 +52,15 @@ function SportControls({ fixture, sport }) {
           : <span className="badge-live"><span className="pulse" />Live</span>}
       </div>
 
-      <div className="stepper-row">
-        <Stepper label={home?.code} value={s.home} disabled={locked}
-          onMinus={() => actions.adjustScore(fixture.id, sport, 'home', -1)}
-          onPlus={() => actions.adjustScore(fixture.id, sport, 'home', +1)} />
-        <Stepper label={away?.code} value={s.away} disabled={locked}
-          onMinus={() => actions.adjustScore(fixture.id, sport, 'away', -1)}
-          onPlus={() => actions.adjustScore(fixture.id, sport, 'away', +1)} />
+      <MatchClock fixture={fixture} sport={sport} s={s} locked={locked} now={now} />
+
+      <div className="score-row">
+        <ScoreCell team={home} value={s.home} disabled={locked}
+          onPlus={() => actions.adjustScore(fixture.id, sport, 'home', +1)}
+          onMinus={() => actions.adjustScore(fixture.id, sport, 'home', -1)} />
+        <ScoreCell team={away} value={s.away} disabled={locked}
+          onPlus={() => actions.adjustScore(fixture.id, sport, 'away', +1)}
+          onMinus={() => actions.adjustScore(fixture.id, sport, 'away', -1)} />
       </div>
 
       {(s.scorers?.length > 0 || s.cards?.length > 0) && (
@@ -63,9 +68,15 @@ function SportControls({ fixture, sport }) {
           {s.scorers.map((sc, i) => (
             <span className="ev-chip" key={`s${i}`}>⚽ {sc.name || 'Scorer'}{sc.minute ? ` ${sc.minute}'` : ''}</span>
           ))}
-          {s.cards.map((c, i) => (
-            <span className="ev-chip" key={`c${i}`}>{c.type === 'red' ? '🟥' : '🟨'} {c.name || 'Player'}{c.minute ? ` ${c.minute}'` : ''}</span>
-          ))}
+          {s.cards.map((c, i) => {
+            const remain = cardRemainingMs(c, now)
+            return (
+              <span className={`ev-chip ev-card ev-card-${c.type}`} key={`c${i}`}>
+                {c.type === 'red' ? '🟥' : '🟨'} {c.name || 'Player'}{c.minute ? ` ${c.minute}'` : ''}
+                {remain > 0 && <b className="ev-countdown">{formatClock(remain)}</b>}
+              </span>
+            )
+          })}
         </div>
       )}
 
@@ -73,8 +84,8 @@ function SportControls({ fixture, sport }) {
         <>
           <div className="sk-actions">
             <button onClick={() => setPicker(picker === 'scorer' ? null : 'scorer')}>+ Scorer</button>
-            <button onClick={() => setPicker(picker === 'card' ? null : 'card')}>+ Card</button>
-            <button className="sk-publish" onClick={() => actions.publishSport(fixture.id, sport)}>Publish</button>
+            <button className="sk-card-btn" onClick={() => setPicker(picker === 'card' ? null : 'card')}>+ Card</button>
+            <button className="sk-publish" onClick={() => actions.publishSport(fixture.id, sport)}>Publish full-time</button>
           </div>
           {picker === 'scorer' && (
             <EventPicker kind="scorer" fixture={fixture} sport={sport} home={home} away={away}
@@ -94,15 +105,66 @@ function SportControls({ fixture, sport }) {
   )
 }
 
-function Stepper({ label, value, onMinus, onPlus, disabled }) {
+const PHASE_LABEL = {
+  not_started: 'NOT STARTED', first_half: '1ST HALF', halftime: 'HALF-TIME',
+  second_half: '2ND HALF', paused: 'PAUSED', full_time: 'FULL-TIME',
+}
+
+function MatchClock({ fixture, sport, s, locked, now }) {
+  const { actions } = useData()
+  const elapsed = clockElapsedMs(s.clock, now)
+  const phase = matchPhase(s.clock, locked)
+
   return (
-    <div className="stepper">
-      <span className="st-label">{label}</span>
-      <div className="st-controls">
-        <button onClick={onMinus} disabled={disabled} aria-label={`${label} minus`}>−</button>
-        <span className="st-val">{value}</span>
-        <button onClick={onPlus} disabled={disabled} aria-label={`${label} plus`}>+</button>
+    <div className="match-clock">
+      <div className="mc-time">
+        <span className="mc-glyph" aria-hidden="true">⏱</span>
+        <span className="mc-val">{formatClock(elapsed)}</span>
+        <span className="mc-phase">{PHASE_LABEL[phase]}</span>
       </div>
+      {!locked && (
+        <div className="mc-actions">
+          {phase === 'first_half' && (
+            <>
+              <button className="mc-btn mc-pause" onClick={() => actions.pauseClock(fixture.id, sport)}>❚❚ Pause</button>
+              <button className="mc-btn mc-half" onClick={() => actions.startHalftime(fixture.id, sport)}>Half-time</button>
+            </>
+          )}
+          {phase === 'second_half' && (
+            <button className="mc-btn mc-pause" onClick={() => actions.pauseClock(fixture.id, sport)}>❚❚ Pause</button>
+          )}
+          {phase === 'paused' && s.clock?.half === 1 && (
+            <>
+              <button className="mc-btn mc-resume" onClick={() => actions.resumeClock(fixture.id, sport)}>▶ Resume</button>
+              <button className="mc-btn mc-half" onClick={() => actions.startHalftime(fixture.id, sport)}>Half-time</button>
+            </>
+          )}
+          {phase === 'paused' && s.clock?.half === 2 && (
+            <button className="mc-btn mc-resume" onClick={() => actions.resumeClock(fixture.id, sport)}>▶ Resume</button>
+          )}
+          {phase === 'halftime' && (
+            <button className="mc-btn mc-resume" onClick={() => actions.startSecondHalf(fixture.id, sport)}>▶ Start 2nd half</button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ScoreCell({ team, value, onPlus, onMinus, disabled }) {
+  return (
+    <div className="score-cell">
+      <span className="sc-label">{team?.code}</span>
+      <span className="sc-val">{value}</span>
+      <button
+        className="goal-btn"
+        style={{ background: team?.colorHex, borderColor: team?.colorHex }}
+        onClick={onPlus}
+        disabled={disabled}
+      >
+        + {team?.code} goal
+      </button>
+      <button className="goal-minus" onClick={onMinus} disabled={disabled || !value} aria-label={`Correct ${team?.code} score down`}>− correct</button>
     </div>
   )
 }

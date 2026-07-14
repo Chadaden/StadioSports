@@ -1,19 +1,20 @@
 import { useRole } from '../store/RoleContext'
 
 // Persistent bottom tab bar (§5.3 thumb zone).
-// Travel is an organiser tab — hidden from the public Viewer (§3).
+// Travel is a team-manager tab only — hidden from the public Viewer (§3) and,
+// per client request (14 Jul), from the Scorekeeper too (not relevant on the day).
 const ALL_TABS = [
   { id: 'live', label: 'Live', glyph: '📡' },
   { id: 'fixtures', label: 'Fixtures', glyph: '🗒️' },
   { id: 'table', label: 'Table', glyph: '🏆' },
-  { id: 'travel', label: 'Travel', glyph: '🚌', organiserOnly: true },
+  { id: 'travel', label: 'Travel', glyph: '🚌', managerOnly: true },
   { id: 'schedule', label: 'Schedule', glyph: '🕒' },
 ]
 
 export default function BottomTabBar({ active, onChange }) {
   const { role } = useRole()
-  const isOrganiser = role === 'scorekeeper' || role === 'manager'
-  const tabs = ALL_TABS.filter((t) => !t.organiserOnly || isOrganiser)
+  const isManager = role === 'manager'
+  const tabs = ALL_TABS.filter((t) => !t.managerOnly || isManager)
 
   return (
     <nav className="tabbar" aria-label="Primary" style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}>

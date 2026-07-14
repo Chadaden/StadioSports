@@ -217,33 +217,73 @@ table.standings .rank { color: var(--grey); font-family: var(--mono); font-size:
 
 /* ---- scorekeeper controls (Phase 2, §8) --------------------------------- */
 .sk-banner { background: #f0f9fe; border-color: #bfe4f6; color: var(--blue); font-size: 12.5px; font-weight: 600; }
-.sk-panel { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); display: flex; flex-direction: column; gap: 14px; }
+.sk-panel { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); display: flex; flex-direction: column; gap: 18px; }
 .sk-note { font-size: 12.5px; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
-.sk-sport { background: var(--bg-soft); border-radius: var(--radius-control); padding: 12px; }
+
+/* Each sport gets its own tinted, coloured-edge block so soccer and netball
+   read as clearly separate sections (client request, 14 Jul). */
+.sk-sport {
+  background: var(--bg-soft); border-radius: var(--radius-control); padding: 12px;
+  border: 1px solid var(--line); border-left: 4px solid transparent;
+}
+.sk-sport-soccer { border-left-color: var(--sky); background: linear-gradient(180deg, rgba(59,177,229,0.08), var(--bg-soft) 90px); }
+.sk-sport-netball { border-left-color: var(--pink); background: linear-gradient(180deg, rgba(231,123,176,0.08), var(--bg-soft) 90px); }
+
 .sk-head { display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; font-weight: 700; color: #3f4346; margin-bottom: 10px; }
 .sk-start {
   width: 100%; min-height: 44px; border: 1px solid var(--lime); background: #fff;
   color: #4e7d1a; font-weight: 700; font-size: 14px; border-radius: var(--radius-control); cursor: pointer;
 }
 
-.stepper-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.stepper { background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-control); padding: 8px; text-align: center; }
-.stepper .st-label { font-size: 11px; font-weight: 800; color: var(--ink-soft); letter-spacing: 0.05em; }
-.stepper .st-controls { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
-.stepper .st-controls button {
-  width: 44px; height: 44px; border-radius: 10px; border: 1px solid var(--line);
-  background: var(--bg-soft); font-size: 22px; font-weight: 700; color: #3f4346; cursor: pointer; line-height: 1;
+/* ---- match clock ---- */
+.match-clock {
+  background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-control);
+  padding: 10px 12px; margin-bottom: 10px;
 }
-.stepper .st-controls button:disabled { opacity: 0.4; cursor: not-allowed; }
-.stepper .st-val { font-family: var(--mono); font-size: 26px; font-weight: 500; color: #3f4346; min-width: 40px; }
+.mc-time { display: flex; align-items: center; gap: 8px; }
+.mc-glyph { font-size: 16px; }
+.mc-val { font-family: var(--mono); font-size: 24px; font-weight: 500; color: #3f4346; }
+.mc-phase { margin-left: auto; font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; color: var(--ink-soft); }
+.mc-actions { display: flex; gap: 8px; margin-top: 8px; }
+.mc-btn {
+  flex: 1; min-height: 40px; border-radius: var(--radius-control); border: none;
+  font-size: 13px; font-weight: 800; cursor: pointer; color: #fff;
+}
+.mc-pause { background: var(--orange); }
+.mc-resume { background: var(--lime); color: #33420f; }
+.mc-half { background: var(--blue); }
+
+/* ---- score entry: one colour-of-the-team goal button per side ---- */
+.score-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.score-cell {
+  background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-control);
+  padding: 10px; text-align: center; display: flex; flex-direction: column; align-items: center;
+}
+.score-cell .sc-label { font-size: 11px; font-weight: 800; color: var(--ink-soft); letter-spacing: 0.05em; }
+.score-cell .sc-val { font-family: var(--mono); font-size: 28px; font-weight: 500; color: #3f4346; margin: 2px 0 8px; }
+.goal-btn {
+  width: 100%; min-height: 44px; border: 1px solid transparent; border-radius: var(--radius-control);
+  color: #fff; font-weight: 800; font-size: 13px; cursor: pointer;
+}
+.goal-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.goal-minus { margin-top: 6px; min-height: 26px; border: none; background: none; color: var(--ink-soft); font-size: 11.5px; font-weight: 600; cursor: pointer; }
+.goal-minus:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .sk-events { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; }
-.ev-chip { font-size: 11px; font-weight: 600; background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-pill); padding: 3px 9px; color: var(--ink); }
+.ev-chip { font-size: 11px; font-weight: 600; background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-pill); padding: 3px 9px; color: var(--ink); display: inline-flex; align-items: center; gap: 5px; }
+.ev-card-yellow { background: #fff9e5; border-color: #f5deA0; }
+.ev-card-red { background: #fdeceb; border-color: #f3b9b6; }
+.ev-countdown { font-family: var(--mono); font-weight: 700; }
 
 .sk-actions { display: flex; gap: 8px; margin-top: 10px; }
 .sk-actions button {
   flex: 1; min-height: 42px; border: 1px solid var(--line); background: var(--bg);
   border-radius: var(--radius-control); font-size: 13px; font-weight: 700; color: #3f4346; cursor: pointer;
+}
+/* Card button gets its own yellow/red identity, distinct from the plain +Scorer button. */
+.sk-actions .sk-card-btn {
+  background: linear-gradient(135deg, var(--yellow) 0 48%, var(--red) 52% 100%);
+  border-color: transparent; color: #3a2600; text-shadow: 0 1px 1px rgba(255,255,255,0.35);
 }
 .sk-actions .sk-publish { background: var(--blue); border-color: var(--blue); color: #fff; }
 .sk-reopen { width: 100%; min-height: 42px; margin-top: 10px; border: 1px solid var(--line); background: var(--bg); border-radius: var(--radius-control); font-weight: 700; font-size: 13px; color: var(--ink-soft); cursor: pointer; }

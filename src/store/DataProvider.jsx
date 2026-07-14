@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore'
 import { db, EVENT_ID, isFirebaseConfigured } from '../firebase/config'
 import { buildSeedSnapshot, MILESTONES } from '../data/seed'
+import { clockElapsedMs, freshClock } from '../lib/clock'
 
 const DataContext = createContext(null)
 
@@ -111,15 +112,16 @@ export function DataProvider({ children }) {
     }
 
     return {
-      // begin a sport on a fixture (upcoming → live)
+      // begin a sport on a fixture (upcoming → live) — also starts the match clock
       startSport: (fixtureId, sport) =>
-        writeSport(fixtureId, sport, (s) => ({ ...s, status: 'live' })),
+        writeSport(fixtureId, sport, (s) => ({ ...s, status: 'live', clock: freshClock() })),
 
-      // +/- score (also auto-starts an upcoming match on first tap)
+      // +/- score (also auto-starts an upcoming match + clock on first tap)
       adjustScore: (fixtureId, sport, side, delta) =>
         writeSport(fixtureId, sport, (s) => ({
           ...s,
           status: s.status === 'upcoming' ? 'live' : s.status,
+          clock: s.status === 'upcoming' ? freshClock() : s.clock,
           [side]: Math.max(0, (s[side] || 0) + delta),
         })),
 
@@ -127,11 +129,36 @@ export function DataProvider({ children }) {
         writeSport(fixtureId, sport, (s) => ({ ...s, scorers: [...s.scorers, scorer] })),
 
       addCard: (fixtureId, sport, card) =>
-        writeSport(fixtureId, sport, (s) => ({ ...s, cards: [...s.cards, card] })),
+        writeSport(fixtureId, sport, (s) => ({ ...s, cards: [...s.cards, { ...card, issuedAt: Date.now() }] })),
 
-      // publish (live → final, locks) / reopen (final → live)
+      // pause / resume the running stopwatch
+      pauseClock: (fixtureId, sport) =>
+        writeSport(fixtureId, sport, (s) => ({
+          ...s,
+          clock: { ...s.clock, running: false, startedAt: null, accumulatedMs: clockElapsedMs(s.clock) },
+        })),
+      resumeClock: (fixtureId, sport) =>
+        writeSport(fixtureId, sport, (s) => ({ ...s, clock: { ...s.clock, running: true, startedAt: Date.now() } })),
+
+      // pause into the half-time break / come out of it into the 2nd half
+      startHalftime: (fixtureId, sport) =>
+        writeSport(fixtureId, sport, (s) => ({
+          ...s,
+          clock: { ...s.clock, running: false, halftime: true, startedAt: null, accumulatedMs: clockElapsedMs(s.clock) },
+        })),
+      startSecondHalf: (fixtureId, sport) =>
+        writeSport(fixtureId, sport, (s) => ({
+          ...s,
+          clock: { ...s.clock, half: 2, halftime: false, running: true, startedAt: Date.now() },
+        })),
+
+      // publish (live → final, locks + freezes the clock) / reopen (final → live)
       publishSport: (fixtureId, sport) =>
-        writeSport(fixtureId, sport, (s) => ({ ...s, status: 'final' })),
+        writeSport(fixtureId, sport, (s) => ({
+          ...s,
+          status: 'final',
+          clock: s.clock && { ...s.clock, running: false, startedAt: null, accumulatedMs: clockElapsedMs(s.clock) },
+        })),
       reopenSport: (fixtureId, sport) =>
         writeSport(fixtureId, sport, (s) => ({ ...s, status: 'live' })),
 
