@@ -36,7 +36,7 @@ function SportControls({ fixture, sport }) {
 
   if (s.status === 'upcoming') {
     return (
-      <div className="sk-sport">
+      <div className={`sk-sport sk-sport-${sport}`}>
         <div className="sk-head"><span>{SPORT_GLYPH[sport]} {cap(sport)}</span><span className="chip chip-upcoming">Upcoming</span></div>
         <button className="sk-start" onClick={() => actions.startSport(fixture.id, sport)}>
           ▶ Kick off {sport} — clock starts
@@ -52,7 +52,7 @@ function SportControls({ fixture, sport }) {
     setPicker({ kind: 'goal', side, minute: s.clock ? clockMinute(s.clock) : null })
 
   return (
-    <div className="sk-sport">
+    <div className={`sk-sport sk-sport-${sport}`}>
       <div className="sk-head">
         <span>{SPORT_GLYPH[sport]} {cap(sport)}</span>
         {locked
@@ -84,10 +84,10 @@ function SportControls({ fixture, sport }) {
 
       {!locked && (
         <div className="sk-goal-row">
-          <button className="sk-goal" onClick={() => openGoalPicker('home')}>
+          <button className="sk-goal" style={{ background: home?.colorHex }} onClick={() => openGoalPicker('home')}>
             + {SPORT_GLYPH[sport]} {home?.code} goal
           </button>
-          <button className="sk-goal" onClick={() => openGoalPicker('away')}>
+          <button className="sk-goal" style={{ background: away?.colorHex }} onClick={() => openGoalPicker('away')}>
             + {SPORT_GLYPH[sport]} {away?.code} goal
           </button>
         </div>
@@ -115,7 +115,7 @@ function SportControls({ fixture, sport }) {
             </span>
           ))}
           {s.cards.map((c, i) => (
-            <span className="ev-chip" key={`c${i}`}>{c.type === 'red' ? '🟥' : '🟨'} {c.minute ? `${c.minute}' ` : ''}{c.name || 'Player'}</span>
+            <span className={`ev-chip ev-card-${c.type}`} key={`c${i}`}>{c.type === 'red' ? '🟥' : '🟨'} {c.minute ? `${c.minute}' ` : ''}{c.name || 'Player'}</span>
           ))}
         </div>
       )}
@@ -123,7 +123,7 @@ function SportControls({ fixture, sport }) {
       {!locked && (
         <>
           <div className="sk-actions">
-            <button onClick={() => setPicker(picker?.kind === 'card' ? null : { kind: 'card' })}>+ Card</button>
+            <button className="sk-card-btn" onClick={() => setPicker(picker?.kind === 'card' ? null : { kind: 'card' })}>+ Card</button>
             <button className="sk-publish" onClick={() => actions.publishSport(fixture.id, sport)}>Publish full-time</button>
           </div>
           {picker?.kind === 'card' && (

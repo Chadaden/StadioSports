@@ -44,7 +44,7 @@ function FixtureCard({ fixture, teams, showControls }) {
     : 'upcoming'
 
   return (
-    <div className="card fixture">
+    <div className={`card fixture${status === 'live' ? ' is-live' : ''}`}>
       <div className="fx-head">
         <span className="fx-time">{fixture.slotTime} · {ROUND_LABEL[fixture.round]}</span>
         <StatusChip status={status} />
@@ -63,7 +63,7 @@ function FixtureCard({ fixture, teams, showControls }) {
           const s = fixture[sport]
           const show = s?.status === 'live' || s?.status === 'final'
           return (
-            <div className="cell" key={sport}>
+            <div className={`cell ${sport}`} key={sport}>
               <span className="s-label">{SPORT_GLYPH[sport]} {sport === 'soccer' ? 'Soccer' : 'Netball'}</span>
               <span className="s-val">{show ? `${s.home}–${s.away}` : '—'}</span>
               {s?.status === 'live' && s.clock && (

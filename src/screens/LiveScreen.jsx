@@ -69,7 +69,7 @@ function MatchHero({ fixture, teams, event, live }) {
   const home = teams[fixture.homeTeamId]
   const away = teams[fixture.awayTeamId]
   return (
-    <div className="hero">
+    <div className={`hero${live ? ' is-live' : ''}`}>
       <div className="hero-top">
         {live ? <LiveBadge /> : <span className="chip chip-upcoming">Up next · {fixture.slotTime}</span>}
         <span className="kicker">Match {fixture.matchNo}</span>
@@ -92,7 +92,7 @@ function SportLine({ sport, data }) {
   const showScore = data?.status === 'live' || data?.status === 'final'
   return (
     <>
-      <div className="sportline">
+      <div className={`sportline ${sport}`}>
         <span className="label">{SPORT_GLYPH[sport]} {sport[0].toUpperCase() + sport.slice(1)}</span>
         <span className="score">
           {showScore ? (
