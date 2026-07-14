@@ -41,7 +41,7 @@ function TravelCard({ team, state }) {
   const att = state?.attendance || { present: 0, total: 0 }
 
   return (
-    <div className="card travel-card">
+    <div className="card travel-card" style={{ '--team-accent': team.colorHex }}>
       <div className="tc-head">
         <Crest team={team} />
         <span className="name">{team.name}</span>

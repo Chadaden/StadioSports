@@ -56,9 +56,20 @@ If the Firestore event data needs to be (re-)seeded:
 node scripts/seed-firestore.mjs
 ```
 
-This seeds: event config, 4 teams, Durbanville roster (21 players),
-8 fixtures, travel state, and the opening announcement.
-Safe to re-run — it overwrites, not duplicates.
+This seeds: event config, 4 teams, the Durbanville (21), Musgrave (20) and
+Waterfall (17) rosters with their manager-only private profiles (emergency
+contacts, medical, dietary), 8 fixtures, travel state, and the opening
+announcement. Safe to re-run — it overwrites, not duplicates.
+
+**Re-run this after deploying this branch** — player ids were regenerated
+from the updated sheet and fixtures now carry the match-clock field.
+
+**Private profiles need a local file**: this repo is PUBLIC, so the
+emergency-contact/medical data is never committed. Place the provided
+`privateProfiles.local.js` at `src/data/privateProfiles.local.js`
+(git-ignored; shape documented in `src/data/privateProfiles.example.js`)
+before seeding or before building a demo-mode bundle. Without it the app
+still works — managers just see "No private details on file".
 
 ## The three role links
 
@@ -73,12 +84,35 @@ After deploy, the three access links are:
 Replace `durbanville` with `centurion`, `musgrave`, or `waterfall` for
 the other three manager links.
 
+## Spectator QR code
+
+The spectator QR code (it encodes the Viewer URL above) ships in `public/`
+and is also hosted after deploy:
+
+- Plain QR: `https://stadio-sports-day-2026.web.app/spectator-qr.png`
+- Print-ready A4 poster: `https://stadio-sports-day-2026.web.app/spectator-qr-poster.png`
+
+Spectators scan it with their phone camera — no app, no login.
+
 ## What the Firestore rules deploy does
 
 The current live rules are `allow write: if true` (open). Deploying
 `firestore.rules` from this branch closes that to:
-- Public read: everyone
+- Public read: everyone — EXCEPT `teams/{teamId}/private/*` (emergency
+  contacts, medical, dietary), which only the owning team's manager or the
+  organiser can read
 - Write fixtures/announcements/reports: scorekeeper claim only
 - Write travel + attendance: team manager claim for own team only
 
-This should be deployed at the earliest opportunity.
+This should be deployed at the earliest opportunity — ideally BEFORE
+running the seed script, since the seed now writes the private player
+profiles and the open rules would leave them publicly readable.
+
+NOTE: the tightened rules key off Firebase Auth custom claims, which the
+link-gated MVP does not issue yet. Until auth ships, live Firestore must
+keep the open rules for the app to function (the client test accepted
+this §7 shortcut) — which means seeded private profiles are only
+link-gated, not access-controlled. If that trade-off isn't acceptable for
+the test day, skip seeding profiles (comment out the `private` block in
+`scripts/seed-firestore.mjs`) and managers fall back to "No private
+details on file".

@@ -13,7 +13,7 @@ export default function AppHeader() {
           <b>{event?.name || 'Live Event Hub'}</b>
         </div>
         <span className={`mode ${isLive ? 'live' : 'demo'}`}>
-          {isLive ? '● LIVE' : 'DEMO DATA'}
+          {isLive ? <><span className="pulse" />LIVE</> : 'DEMO DATA'}
         </span>
       </div>
     </header>

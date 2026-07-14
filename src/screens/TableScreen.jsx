@@ -18,8 +18,8 @@ export default function TableScreen() {
   return (
     <>
       <div className="segmented" role="tablist">
-        <button role="tab" className={sport === 'soccer' ? 'active' : ''} onClick={() => setSport('soccer')}>⚽ Soccer</button>
-        <button role="tab" className={sport === 'netball' ? 'active' : ''} onClick={() => setSport('netball')}>🏐 Netball</button>
+        <button role="tab" className={sport === 'soccer' ? 'active soccer' : ''} onClick={() => setSport('soccer')}>⚽ Soccer</button>
+        <button role="tab" className={sport === 'netball' ? 'active netball' : ''} onClick={() => setSport('netball')}>🏐 Netball</button>
       </div>
 
       <div className="card">
@@ -35,7 +35,7 @@ export default function TableScreen() {
             {rows.map((r) => (
               <tr key={r.team.id} className={r.rank === 1 && anyPlayed ? 'leader' : ''}>
                 <td className="lhs rank">{r.rank}</td>
-                <td className="team lhs"><Crest team={r.team} size="sm" />{r.team.name}</td>
+                <td className="team lhs" style={{ '--row-accent': r.team.colorHex }}><Crest team={r.team} size="sm" />{r.team.name}</td>
                 <td>{r.played}</td><td>{r.won}</td><td>{r.drawn}</td><td>{r.lost}</td>
                 <td>{r.diff > 0 ? `+${r.diff}` : r.diff}</td>
                 <td className="pts">{r.points}</td>

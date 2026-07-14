@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { useData } from '../store/DataProvider'
 import { useRole } from '../store/RoleContext'
 import { MILESTONES, MILESTONE_LABELS } from '../data/seed'
+import PlayerCard from '../components/PlayerCard'
 
 // Team Manager controls (§3, §6). Renders on the Travel tab only for the
 // manager's own team — one-tap attendance mark-all + per-player toggles +
@@ -18,7 +20,8 @@ export default function ManagerControls({ team, travelState }) {
 }
 
 function AttendancePanel({ team }) {
-  const { actions } = useData()
+  const { actions, profiles } = useData()
+  const [openPlayerId, setOpenPlayerId] = useState(null)
   const players = team.players || []
   const presentCount = players.filter((p) => p.present).length
 
@@ -32,6 +35,7 @@ function AttendancePanel({ team }) {
   }
 
   const allPresent = presentCount === players.length
+  const openPlayer = players.find((p) => p.id === openPlayerId)
 
   return (
     <div className="mgr-section">
@@ -51,19 +55,37 @@ function AttendancePanel({ team }) {
         </button>
       )}
 
+      <div className="muted" style={{ fontSize: 11.5, margin: '8px 0 0' }}>
+        Tick to mark present · tap a name for medical & emergency details
+      </div>
+
       <div className="att-list">
         {players.map((p) => (
-          <button
-            key={p.id}
-            className={`att-row ${p.present ? 'present' : ''}`}
-            onClick={() => actions.togglePresent(team.id, p.id, p.present)}
-          >
-            <span className="att-check">{p.present ? '✓' : ''}</span>
-            <span className="att-name">{p.firstName} {p.surname}</span>
+          <div key={p.id} className={`att-row ${p.present ? 'present' : ''}`}>
+            <button
+              className="att-check"
+              aria-label={`Mark ${p.firstName} ${p.surname} ${p.present ? 'absent' : 'present'}`}
+              onClick={() => actions.togglePresent(team.id, p.id, p.present)}
+            >
+              {p.present ? '✓' : ''}
+            </button>
+            <button className="att-name att-open" onClick={() => setOpenPlayerId(p.id)}>
+              {p.firstName} {p.surname}
+            </button>
             <span className="att-tag muted">{p.sport ?? p.role}</span>
-          </button>
+            <span className="att-chev muted">›</span>
+          </div>
         ))}
       </div>
+
+      {openPlayer && (
+        <PlayerCard
+          player={openPlayer}
+          team={team}
+          profile={profiles?.[openPlayer.id]}
+          onClose={() => setOpenPlayerId(null)}
+        />
+      )}
     </div>
   )
 }

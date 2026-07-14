@@ -10,6 +10,9 @@ export default defineConfig({
     // separately in src/firebase/config.js.
     VitePWA({
       registerType: 'autoUpdate',
+      // We register the SW ourselves (src/pwa.js) so we can force an update
+      // check on every resume, not just on the plugin's bare `load` listener.
+      injectRegister: false,
       includeAssets: ['favicon.svg'],
       manifest: {
         name: 'STADIO National Sports Day',
