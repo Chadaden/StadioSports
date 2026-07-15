@@ -5,11 +5,11 @@ import { RoleProvider, useRole } from './store/RoleContext'
 import AppHeader from './components/AppHeader'
 import BottomTabBar from './components/BottomTabBar'
 import LiveScreen from './screens/LiveScreen'
+import TeamScreen from './screens/TeamScreen'
 import FixturesScreen from './screens/FixturesScreen'
 import TableScreen from './screens/TableScreen'
 import TravelScreen from './screens/TravelScreen'
 import ScheduleScreen from './screens/ScheduleScreen'
-import SquadsScreen from './screens/SquadsScreen'
 
 // Phase 1 — the public Viewer. Three-role architecture (§3) is resolved in
 // lib/roles.js; Scorekeeper (Phase 2) and Manager (Phase 3) layer their write
@@ -17,10 +17,12 @@ import SquadsScreen from './screens/SquadsScreen'
 function Shell() {
   const { loading, isLive } = useData()
   const { role } = useRole()
-  // 'squads' is a sub-view reached from Live, not a bottom tab (§6).
+  // Each role lands on its most useful tab (§3, §6): Scorekeeper on Fixtures
+  // (where scoring happens), Manager on Team (their own roster), everyone
+  // else on Live.
   const [tab, setTab] = useState(() => {
     if (role === 'scorekeeper') return 'fixtures'
-    if (role === 'manager') return 'travel'
+    if (role === 'manager') return 'team'
     return 'live'
   })
   const contentRef = useRef(null)
@@ -49,17 +51,14 @@ function Shell() {
         </div>
       )}
       <main className="content" ref={contentRef}>
-        {tab === 'live' && <LiveScreen onOpenSquads={() => setTab('squads')} />}
+        {tab === 'live' && <LiveScreen />}
+        {tab === 'team' && <TeamScreen />}
         {tab === 'fixtures' && <FixturesScreen />}
         {tab === 'table' && <TableScreen />}
         {tab === 'travel' && <TravelScreen />}
         {tab === 'schedule' && <ScheduleScreen />}
-        {tab === 'squads' && <SquadsScreen onBack={() => setTab('live')} />}
       </main>
-      <BottomTabBar
-        active={tab === 'squads' ? 'live' : tab}
-        onChange={setTab}
-      />
+      <BottomTabBar active={tab} onChange={setTab} />
     </div>
   )
 }

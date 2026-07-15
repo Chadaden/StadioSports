@@ -1,6 +1,6 @@
 import { useData, useTeamMap } from '../store/DataProvider'
 import { useIsScorekeeper } from '../store/RoleContext'
-import { Crest, StatusChip } from '../components/ui'
+import { Crest, StatusChip, SectionLabel } from '../components/ui'
 import { SPORT_GLYPH } from '../lib/constants'
 import { formatClock, useClockTick } from '../lib/clock'
 import ScorekeeperControls from './ScorekeeperControls'
@@ -16,6 +16,7 @@ export default function FixturesScreen() {
 
   return (
     <>
+      <SectionLabel>STADIO Inter-campus Sports Day Fixtures</SectionLabel>
       {isScorekeeper && (
         <>
           <MancoReportButton />

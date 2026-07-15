@@ -15,9 +15,9 @@ export default defineConfig({
       injectRegister: false,
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: 'STADIO National Sports Day',
+        name: 'STADIO Inter-campus Sports Day',
         short_name: 'Sports Day',
-        description: 'Live scores, standings, squad travel and schedule for STADIO National Sports Day.',
+        description: 'Live scores, standings, squad travel and schedule for STADIO Inter-campus Sports Day.',
         theme_color: '#ffffff',
         background_color: '#f5f6f7',
         display: 'standalone',

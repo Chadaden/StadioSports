@@ -7,9 +7,9 @@ import { PHASE_LABELS, formatClock, useClockTick } from '../lib/clock'
 
 // LIVE tab (§6): hero for the in-progress pairing (both sports), "Up next",
 // then the announcements feed. Viewer is read-only; the Scorekeeper can post
-// announcements to the feed.
-export default function LiveScreen({ onOpenSquads }) {
-  const { fixtures = [], event, announcements = [] } = useData()
+// announcements to the feed. (Team Manager gets the Team tab instead — §3.)
+export default function LiveScreen() {
+  const { fixtures = [], announcements = [] } = useData()
   const teams = useTeamMap()
   const isScorekeeper = useIsScorekeeper()
 
@@ -24,7 +24,7 @@ export default function LiveScreen({ onOpenSquads }) {
   return (
     <>
       {hero ? (
-        <MatchHero fixture={hero} teams={teams} event={event} live={Boolean(liveFx)} />
+        <MatchHero fixture={hero} teams={teams} live={Boolean(liveFx)} />
       ) : (
         <div className="card">
           <EmptyState
@@ -41,11 +41,6 @@ export default function LiveScreen({ onOpenSquads }) {
       ) : (
         <div className="card tight muted center">All fixtures complete.</div>
       )}
-
-      <button className="card tight" style={btnRow} onClick={onOpenSquads}>
-        <span style={{ fontWeight: 700, color: '#3f4346' }}>👥 View squads</span>
-        <span className="muted">›</span>
-      </button>
 
       <SectionLabel>Announcements</SectionLabel>
       {isScorekeeper && <AnnouncementComposer />}
@@ -65,7 +60,7 @@ export default function LiveScreen({ onOpenSquads }) {
   )
 }
 
-function MatchHero({ fixture, teams, event, live }) {
+function MatchHero({ fixture, teams, live }) {
   const home = teams[fixture.homeTeamId]
   const away = teams[fixture.awayTeamId]
   return (
@@ -82,7 +77,6 @@ function MatchHero({ fixture, teams, event, live }) {
       {['soccer', 'netball'].map((sport) => (
         <SportLine key={sport} sport={sport} data={fixture[sport]} />
       ))}
-      <StreamButton event={event} />
     </div>
   )
 }
@@ -131,16 +125,6 @@ function ScorerFeed({ sport, scorers }) {
   )
 }
 
-function StreamButton({ event }) {
-  const url = event?.streamUrl?.soccer || event?.streamUrl?.netball || ''
-  if (!url) {
-    return <button className="btn-stream" disabled>▶ Stream link coming soon</button>
-  }
-  return (
-    <a className="btn-stream" href={url} target="_blank" rel="noreferrer">▶ Watch stream</a>
-  )
-}
-
 function UpNextCard({ fixture, teams }) {
   const home = teams[fixture.homeTeamId]
   const away = teams[fixture.awayTeamId]
@@ -176,9 +160,4 @@ function AnnouncementComposer() {
       <button disabled={!body.trim()} onClick={submit}>Post</button>
     </div>
   )
-}
-
-const btnRow = {
-  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-  width: '100%', border: '1px solid var(--line)', cursor: 'pointer', textAlign: 'left',
 }

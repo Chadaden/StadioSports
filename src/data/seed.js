@@ -20,7 +20,7 @@ export const EVENT_ID = 'national-sports-day-2026'
 
 // ---------- event config (events/{eventId}) ----------
 export const event = {
-  name: 'National Sports Day 2026',
+  name: 'STADIO Inter-campus Sports Day 2026',
   host: 'Centurion',
   dateISO: '2026-08-00', // TODO(client §11): confirm exact August date
   status: 'scheduled', // scheduled | live | complete
@@ -50,7 +50,7 @@ export const teams = [
     colorHex: '#3BB1E5',
     type: 'host',
     travel: null,
-    rosterLoaded: false,
+    rosterLoaded: true,
   },
   {
     id: 'musgrave',
@@ -96,9 +96,19 @@ export const teams = [
 // All campuses from Inter_campus_sports_dayChad.xlsx — names / sport / role /
 // isGK only; the sensitive columns are ingested into the git-ignored
 // data/privateProfiles.local.js keyed by these same ids (manager-only, §9).
-// Centurion roster still pending.
+// Centurion: soccer squad only, from the sheet's "Player number details
+// soccer" tab (14 Jul) — no Traveling Party row yet (host, not travelling),
+// so no netball/support roster or private profile until that's submitted.
 export const players = {
   centurion: [
+    { id: 'cen-01', firstName: 'Bono hyphen', surname: 'Kholophe', role: 'player', sport: 'soccer', isGK: false },
+    { id: 'cen-02', firstName: 'Dihlora', surname: 'Dinyake', role: 'player', sport: 'soccer', isGK: false },
+    { id: 'cen-03', firstName: 'Neo', surname: 'Mokhutle', role: 'player', sport: 'soccer', isGK: false },
+    { id: 'cen-04', firstName: 'Divhani', surname: 'Mudzielwana', role: 'player', sport: 'soccer', isGK: false },
+    { id: 'cen-05', firstName: 'Phomelelo', surname: 'Phasha', role: 'player', sport: 'soccer', isGK: false },
+    { id: 'cen-06', firstName: 'Mohau', surname: 'Keoagile', role: 'player', sport: 'soccer', isGK: false },
+    { id: 'cen-07', firstName: 'Murangi', surname: 'Mashapha', role: 'player', sport: 'soccer', isGK: false },
+    { id: 'cen-08', firstName: 'Tshegofatso', surname: 'Masubelele', role: 'player', sport: 'soccer', isGK: false },
   ],
   musgrave: [
     { id: 'mus-01', firstName: 'Quaide', surname: 'Salie', role: 'support', sport: null, isGK: false },
@@ -198,7 +208,7 @@ export const travel = {
 export const announcements = [
   {
     id: 'a1',
-    body: 'Welcome to STADIO National Sports Day at Centurion Campus. Follow live scores, fixtures and standings right here.',
+    body: 'Welcome to STADIO Inter-campus Sports Day at Centurion Campus. Follow live scores, fixtures and standings right here.',
     createdAt: '2026-08-00T11:30:00',
   },
 ]

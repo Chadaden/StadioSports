@@ -12,9 +12,9 @@ Built to the project's `BUILD SPEC`. Section references below (§) point at it.
 | Phase | Scope | Status |
 |------|-------|--------|
 | **0** | Scaffold, STADIO design system (§4), Firestore schema (§7), PWA shell, seed data | ✅ Done |
-| **1** | **Viewer** (public, read-only): Live · Fixtures · Table · Travel · Schedule + Squads | ✅ Done |
+| **1** | **Viewer** (public, read-only): Live · Fixtures · Table · Travel · Schedule | ✅ Done |
 | **2** | **Scorekeeper**: live score steppers, scorers, cards, publish/reopen, announcements | ✅ Done |
-| **3** | **Team Manager**: per-player attendance toggle, "mark all present", milestone-advance | ✅ Done |
+| **3** | **Team Manager**: Team tab (own roster as player cards) · per-player attendance toggle, "mark all present", milestone-advance | ✅ Done |
 | **4** | **MANCO report**: one-tap assembly from Firestore + PDF export | ✅ Done |
 | 5 | Offline persistence polish, QR + 3 role links, deploy | ⏳ Next |
 
@@ -75,7 +75,7 @@ src/
   store/DataProvider.jsx live-or-demo data context
   lib/                  standings, role resolution, constants
   components/           AppHeader, BottomTabBar, shared UI
-  screens/              Live, Fixtures, Table, Travel, Schedule, Squads
+  screens/              Live, Team, Fixtures, Table, Travel, Schedule
 firestore.rules         security rules (§7)
 scripts/seed-firestore.mjs   re-runnable Firestore seeder
 ```
