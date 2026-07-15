@@ -17,9 +17,14 @@ import ScheduleScreen from './screens/ScheduleScreen'
 function Shell() {
   const { loading, isLive } = useData()
   const { role } = useRole()
-  const isManager = role === 'manager'
-  // Managers land on Team (their own roster), everyone else on Live (§3, §6).
-  const [tab, setTab] = useState(isManager ? 'team' : 'live')
+  // Each role lands on its most useful tab (§3, §6): Scorekeeper on Fixtures
+  // (where scoring happens), Manager on Team (their own roster), everyone
+  // else on Live.
+  const [tab, setTab] = useState(() => {
+    if (role === 'scorekeeper') return 'fixtures'
+    if (role === 'manager') return 'team'
+    return 'live'
+  })
   const contentRef = useRef(null)
 
   // UX law §5.1 — every tab lands scrolled to top.
