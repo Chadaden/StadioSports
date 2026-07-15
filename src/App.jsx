@@ -1,23 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import { DataProvider, useData } from './store/DataProvider'
-import { RoleProvider } from './store/RoleContext'
+import { RoleProvider, useRole } from './store/RoleContext'
 import AppHeader from './components/AppHeader'
 import BottomTabBar from './components/BottomTabBar'
 import LiveScreen from './screens/LiveScreen'
+import TeamScreen from './screens/TeamScreen'
 import FixturesScreen from './screens/FixturesScreen'
 import TableScreen from './screens/TableScreen'
 import TravelScreen from './screens/TravelScreen'
 import ScheduleScreen from './screens/ScheduleScreen'
-import SquadsScreen from './screens/SquadsScreen'
 
 // Phase 1 — the public Viewer. Three-role architecture (§3) is resolved in
 // lib/roles.js; Scorekeeper (Phase 2) and Manager (Phase 3) layer their write
 // controls onto these same screens later. The Viewer shows zero organiser UI.
 function Shell() {
   const { loading, isLive } = useData()
-  // 'squads' is a sub-view reached from Live, not a bottom tab (§6).
-  const [tab, setTab] = useState('live')
+  const { role } = useRole()
+  const isManager = role === 'manager'
+  // Managers land on Team (their own roster), everyone else on Live (§3, §6).
+  const [tab, setTab] = useState(isManager ? 'team' : 'live')
   const contentRef = useRef(null)
 
   // UX law §5.1 — every tab lands scrolled to top.
@@ -44,17 +46,14 @@ function Shell() {
         </div>
       )}
       <main className="content" ref={contentRef}>
-        {tab === 'live' && <LiveScreen onOpenSquads={() => setTab('squads')} />}
+        {tab === 'live' && <LiveScreen />}
+        {tab === 'team' && <TeamScreen />}
         {tab === 'fixtures' && <FixturesScreen />}
         {tab === 'table' && <TableScreen />}
         {tab === 'travel' && <TravelScreen />}
         {tab === 'schedule' && <ScheduleScreen />}
-        {tab === 'squads' && <SquadsScreen onBack={() => setTab('live')} />}
       </main>
-      <BottomTabBar
-        active={tab === 'squads' ? 'live' : tab}
-        onChange={setTab}
-      />
+      <BottomTabBar active={tab} onChange={setTab} />
     </div>
   )
 }

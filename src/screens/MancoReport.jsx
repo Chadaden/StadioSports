@@ -66,7 +66,7 @@ function MancoModal({ onClose }) {
         if (y > 270) { pdf.addPage(); y = 20 }
       }
 
-      line('STADIO National Sports Day', 18, true)
+      line('STADIO Inter-campus Sports Day', 18, true)
       line('Management Committee (MANCO) Report', 12)
       line(`Generated: ${new Date().toLocaleString('en-ZA')}`, 9)
       y += 4

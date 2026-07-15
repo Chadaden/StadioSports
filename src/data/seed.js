@@ -20,7 +20,7 @@ export const EVENT_ID = 'national-sports-day-2026'
 
 // ---------- event config (events/{eventId}) ----------
 export const event = {
-  name: 'National Sports Day 2026',
+  name: 'STADIO Inter-campus Sports Day 2026',
   host: 'Centurion',
   dateISO: '2026-08-00', // TODO(client §11): confirm exact August date
   status: 'scheduled', // scheduled | live | complete
@@ -198,7 +198,7 @@ export const travel = {
 export const announcements = [
   {
     id: 'a1',
-    body: 'Welcome to STADIO National Sports Day at Centurion Campus. Follow live scores, fixtures and standings right here.',
+    body: 'Welcome to STADIO Inter-campus Sports Day at Centurion Campus. Follow live scores, fixtures and standings right here.',
     createdAt: '2026-08-00T11:30:00',
   },
 ]

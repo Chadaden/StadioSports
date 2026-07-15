@@ -9,7 +9,7 @@ export default function AppHeader() {
       <SpectrumBar />
       <div className="bar">
         <div className="title">
-          <span className="kicker">STADIO · National Sports Day</span>
+          <span className="kicker">STADIO · Inter-campus Sports Day</span>
           <b>{event?.name || 'Live Event Hub'}</b>
         </div>
         <span className={`mode ${isLive ? 'live' : 'demo'}`}>
