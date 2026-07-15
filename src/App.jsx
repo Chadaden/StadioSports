@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import { DataProvider, useData } from './store/DataProvider'
-import { RoleProvider } from './store/RoleContext'
+import { RoleProvider, useRole } from './store/RoleContext'
 import AppHeader from './components/AppHeader'
 import BottomTabBar from './components/BottomTabBar'
 import LiveScreen from './screens/LiveScreen'
@@ -16,8 +16,13 @@ import SquadsScreen from './screens/SquadsScreen'
 // controls onto these same screens later. The Viewer shows zero organiser UI.
 function Shell() {
   const { loading, isLive } = useData()
+  const { role } = useRole()
   // 'squads' is a sub-view reached from Live, not a bottom tab (§6).
-  const [tab, setTab] = useState('live')
+  const [tab, setTab] = useState(() => {
+    if (role === 'scorekeeper') return 'fixtures'
+    if (role === 'manager') return 'travel'
+    return 'live'
+  })
   const contentRef = useRef(null)
 
   // UX law §5.1 — every tab lands scrolled to top.
