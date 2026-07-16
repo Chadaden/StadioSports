@@ -1,0 +1,227 @@
+/* ============================================================================
+   STARDIAL SKIN — an opt-in visual overhaul layered on the existing markup.
+   ----------------------------------------------------------------------------
+   SAFETY CONTRACT: every rule in this file is scoped under
+   :root[data-skin="stardial"]. With any other skin active these rules match
+   nothing, so the current ("classic") UI renders exactly as before. The one
+   exception is the .skin-switcher control at the very bottom, which is
+   intentionally global so you can always toggle back.
+
+   Design brief (client, 16 Jul): one bold "spotlight" match card per screen,
+   everything else quiet; broadcast-scale scores that never wrap; no
+   instructional banners; guaranteed clearance above the tab bar; premium, not
+   a toy. Fonts, colours and team hues all reuse the brand tokens already in
+   index.css — Montserrat 800 for the big numerals (already loaded, no new
+   dependency).
+   ============================================================================ */
+
+/* ---- skin-scoped token overrides: bigger radii, softer depth ------------- */
+:root[data-skin="stardial"] {
+  --radius-card: 20px;
+  --radius-control: 14px;
+  --radius-pill: 999px;
+
+  /* the single saturated surface — a deepened take on the brand blues */
+  --spot-1: #0d3a4c;
+  --spot-2: #1b6884;
+  --spot-3: #2e93b8;
+
+  --shadow-sm: 0 1px 2px rgba(20, 30, 40, 0.05), 0 1px 1px rgba(20, 30, 40, 0.04);
+  --shadow-md: 0 14px 30px -12px rgba(20, 30, 40, 0.18), 0 4px 10px -6px rgba(20, 30, 40, 0.12);
+  --shadow-live: 0 0 0 1px rgba(237, 28, 36, 0.20), 0 14px 30px -12px rgba(237, 28, 36, 0.22);
+}
+
+/* ---- broadcast numerals: the headline fix for the "1 / 0" wrap ----------- */
+:root[data-skin="stardial"] .sportline .score,
+:root[data-skin="stardial"] .sk-score,
+:root[data-skin="stardial"] .fx-scores .cell .s-val {
+  font-family: var(--font);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;          /* physically cannot break onto two lines */
+}
+
+/* ---- header: a touch more presence --------------------------------------- */
+:root[data-skin="stardial"] .appheader .bar { padding: 12px 16px; }
+:root[data-skin="stardial"] .appheader .title b { font-size: 16px; }
+:root[data-skin="stardial"] .appheader .mode.live {
+  background: #fef2f2;
+  box-shadow: inset 0 0 0 1px rgba(237, 28, 36, 0.14);
+}
+
+/* ---- content: guaranteed clearance above the fixed tab bar ---------------- */
+:root[data-skin="stardial"] .content { padding: 16px 16px 132px; }
+
+/* ============================================================================
+   LIVE HERO — the one spotlight card
+   ============================================================================ */
+:root[data-skin="stardial"] .hero {
+  background: linear-gradient(128deg, var(--spot-1) 0%, var(--spot-2) 55%, var(--spot-3) 100%);
+  border: none;
+  color: #fff;
+  box-shadow: 0 18px 34px -14px rgba(13, 58, 76, 0.5);
+}
+:root[data-skin="stardial"] .hero.is-live {
+  box-shadow: 0 0 0 1px rgba(237, 28, 36, 0.22), 0 18px 36px -12px rgba(13, 58, 76, 0.55);
+}
+:root[data-skin="stardial"] .hero .hero-top {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 14px 16px;
+}
+:root[data-skin="stardial"] .hero .hero-top .kicker { color: rgba(255, 255, 255, 0.6); }
+:root[data-skin="stardial"] .hero .pairing { padding: 20px 16px 8px; }
+:root[data-skin="stardial"] .hero .pairing .side b { color: #fff; font-size: 14px; }
+:root[data-skin="stardial"] .hero .vs { color: rgba(255, 255, 255, 0.5); }
+
+/* crests keep their team colour (inline styles) — just lift them off the dark */
+:root[data-skin="stardial"] .hero .crest.lg {
+  box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.5), 0 0 0 3px rgba(255, 255, 255, 0.10);
+}
+
+/* sport lines sit on the dark card as translucent rows with a colour edge */
+:root[data-skin="stardial"] .hero .sportline {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: 3px solid transparent;
+  padding: 14px 16px;
+}
+:root[data-skin="stardial"] .hero .sportline.soccer { border-left-color: var(--sky); }
+:root[data-skin="stardial"] .hero .sportline.netball { border-left-color: var(--pink); }
+:root[data-skin="stardial"] .hero .sportline .label { color: rgba(255, 255, 255, 0.82); }
+:root[data-skin="stardial"] .hero .sportline .score { font-size: 42px; color: #fff; }
+:root[data-skin="stardial"] .hero .sportline .score .dash { color: rgba(255, 255, 255, 0.45); }
+
+/* clock + scorer chips read as glassy pills on the dark card */
+:root[data-skin="stardial"] .hero .chip {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+:root[data-skin="stardial"] .hero .chip.chip-clock { color: #fff; }
+:root[data-skin="stardial"] .hero .chip.chip-upcoming { color: rgba(255, 255, 255, 0.85); }
+:root[data-skin="stardial"] .hero .ev-chip {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.20);
+  color: #fff;
+}
+
+/* ============================================================================
+   FIXTURES — quiet white cards, wrap bug fixed
+   ============================================================================ */
+:root[data-skin="stardial"] .card { box-shadow: var(--shadow-sm); }
+:root[data-skin="stardial"] .fixture.is-live {
+  box-shadow: var(--shadow-live);
+  border-color: transparent;
+}
+:root[data-skin="stardial"] .fixture .fx-pair .name { font-weight: 800; color: #2c3033; }
+
+:root[data-skin="stardial"] .fx-scores { gap: 10px; }
+:root[data-skin="stardial"] .fx-scores .cell {
+  padding: 11px 13px;
+  border-radius: 12px;
+  align-items: center;
+}
+:root[data-skin="stardial"] .fx-scores .cell .s-label {
+  font-size: 11px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+:root[data-skin="stardial"] .fx-scores .cell .s-val {
+  font-size: 21px;
+  flex: none;
+  padding-left: 8px;
+}
+:root[data-skin="stardial"] .fx-scores .cell .s-clock { margin-top: 3px; }
+
+/* ============================================================================
+   SCOREKEEPER — no instruction banner, bold controls, nothing clipped
+   ============================================================================ */
+/* the "Scorekeeper mode — tap to score live…" annotation is removed in-skin */
+:root[data-skin="stardial"] .sk-banner { display: none; }
+
+:root[data-skin="stardial"] .sk-panel { gap: 20px; }
+:root[data-skin="stardial"] .sk-sport { padding: 14px; border-radius: 16px; }
+:root[data-skin="stardial"] .sk-head { font-size: 13px; margin-bottom: 12px; }
+
+:root[data-skin="stardial"] .sk-clock { border-radius: 14px; padding: 10px 14px; }
+:root[data-skin="stardial"] .sk-clock-time { font-size: 22px; }
+
+:root[data-skin="stardial"] .sk-scoreline { gap: 16px; margin: 14px 0; }
+:root[data-skin="stardial"] .sk-scoreline .sk-score { font-size: 32px; }
+
+:root[data-skin="stardial"] .sk-goal-row { gap: 10px; }
+:root[data-skin="stardial"] .sk-goal {
+  min-height: 60px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.25;
+  box-shadow: 0 8px 18px -8px rgba(0, 0, 0, 0.28);
+}
+
+:root[data-skin="stardial"] .sk-actions { gap: 10px; margin-top: 14px; }
+:root[data-skin="stardial"] .sk-actions button { min-height: 48px; border-radius: 14px; font-size: 13px; }
+:root[data-skin="stardial"] .sk-actions .sk-publish { flex: 1.4; }
+:root[data-skin="stardial"] .sk-start { min-height: 48px; border-radius: 14px; font-size: 14px; }
+
+/* ============================================================================
+   STANDINGS — a little more weight where it counts
+   ============================================================================ */
+:root[data-skin="stardial"] table.standings td.pts { font-size: 14px; }
+:root[data-skin="stardial"] table.standings td.team { font-weight: 800; }
+
+/* ============================================================================
+   BOTTOM TAB BAR — cleaner, lighter (icons remain a follow-up layer)
+   ============================================================================ */
+:root[data-skin="stardial"] .tabbar {
+  border-top-color: var(--line);
+  box-shadow: 0 -6px 20px rgba(20, 30, 40, 0.06);
+}
+:root[data-skin="stardial"] .tabbar button { font-weight: 700; }
+
+/* ============================================================================
+   FLOATING SKIN SWITCHER — intentionally GLOBAL (works in both skins)
+   ============================================================================ */
+.skin-switcher {
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right, 0px));
+  bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 15px;
+  border: 1px solid #e3e5e7;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 24px -10px rgba(20, 30, 40, 0.28);
+  color: #3f4346;
+  font-family: var(--font, 'Montserrat', sans-serif);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.skin-switcher:active { transform: scale(0.96); }
+.skin-switcher .skin-switcher-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #aeaeaf;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+.skin-switcher.is-new {
+  border-color: #cfe6a8;
+  color: #2e93b8;
+}
+.skin-switcher.is-new .skin-switcher-dot {
+  background: #96c93e;
+  box-shadow: 0 0 0 3px rgba(150, 201, 62, 0.22);
+}
+.skin-switcher:focus-visible { outline: 2px solid #2e93b8; outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .skin-switcher { transition: none; }
+}
