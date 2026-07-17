@@ -46,7 +46,7 @@ function SportRemote({ fixture, sport }) {
         </div>
         <button className="sd-kickoff" onClick={() => actions.startSport(fixture.id, sport)}>
           <Icon name="whistle" size={20} />
-          Open {sport} controls
+          Start {sport} match
           <small>timer stays stopped</small>
         </button>
       </div>

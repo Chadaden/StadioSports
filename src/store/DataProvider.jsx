@@ -147,7 +147,7 @@ export function DataProvider({ children }) {
     }
 
     return {
-      // Open the controls without starting the match clock.
+      // Start the match without starting the independent match clock.
       startSport: (fixtureId, sport) =>
         writeSport(fixtureId, sport, activateSportState),
 
@@ -177,7 +177,7 @@ export function DataProvider({ children }) {
           scorers: [...s.scorers, scorer],
         })),
 
-      // +/- score corrections (also auto-starts an upcoming match on first tap)
+      // +/- score corrections (also marks an upcoming match live, clock stopped)
       adjustScore: (fixtureId, sport, side, delta) =>
         writeSport(fixtureId, sport, (s) => adjustScoreState(s, side, delta)),
 

@@ -54,8 +54,7 @@ export function useSecondTick(active) {
 }
 
 // Re-render every second while any provided clock is running, returning a
-// fresh timestamp to derive the display from. Returns 0 until the first tick
-// (elapsedSeconds treats that as "just started" — off by under a second).
+// fresh timestamp from which the display is derived.
 export function useClockTick(...clocks) {
   const running = clocks.some((c) => isClockRunning(c))
   return useSecondTick(running)
