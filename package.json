@@ -6,9 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint .",
+    "lint": "eslint src test",
     "preview": "vite preview",
-    "test": "node --test"
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "firebase": "^12.14.0",

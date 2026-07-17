@@ -28,3 +28,4 @@ src/data/privateProfiles.local.js
 
 # Firebase CLI local deploy cache
 .firebase/
+.gstack/
