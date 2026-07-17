@@ -1,11 +1,9 @@
 // Stardial SCHEDULE — the day down one rail. Node colour = kind of moment
 // (match / break / ceremony); the current slot burns red with a NOW tag.
-// Same static schedule + wall-clock logic as classic.
+// Same static schedule + wall-clock logic as classic. Icon-free — the rail
+// and its coloured nodes do the wayfinding; slot content is left-aligned text.
 
 import { schedule } from '../../data/seed'
-import Icon from './icons'
-
-const KIND_ICON = { match: 'whistle', break: 'schedule', ceremony: 'trophy' }
 
 export default function SdScheduleScreen() {
   const nowIdx = currentSlotIndex(schedule)
@@ -18,7 +16,6 @@ export default function SdScheduleScreen() {
             <span className="sd-stop-dot" />
           </div>
           <div className="sd-slot">
-            <span className="sd-slot-ic"><Icon name={KIND_ICON[row.kind] || 'schedule'} size={16} /></span>
             <span className="sd-slot-body">
               <b>{row.activity}</b>
               <span>{row.venue}</span>

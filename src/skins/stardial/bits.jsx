@@ -1,7 +1,8 @@
 // Stardial shared primitives — crest chips, status language, score digits.
+// Icon-free by design: identity is carried by team colour + code, status by
+// words and a single live dot. No pictographic glyphs anywhere.
 
 import { useEffect, useRef, useState } from 'react'
-import Icon, { SPORT_ICON } from './icons'
 
 export function SdCrest({ team, size = 'md' }) {
   return (
@@ -19,28 +20,17 @@ export function LivePill({ compact = false }) {
   )
 }
 
-// One status vocabulary for the whole skin — shown, never explained.
+// One status vocabulary for the whole skin — shown as words, never explained.
 export function StatusTag({ status }) {
   if (status === 'live') return <LivePill />
   if (status === 'final') return <span className="sd-tag sd-tag-final">FULL-TIME</span>
   return <span className="sd-tag">UPCOMING</span>
 }
 
-export function SportChip({ sport, size = 16 }) {
-  return (
-    <span className={`sd-sportchip sd-sportchip-${sport}`}>
-      <Icon name={SPORT_ICON[sport]} size={size} />
-    </span>
-  )
-}
-
-export function SectionTitle({ icon, children, right }) {
+export function SectionTitle({ children, right }) {
   return (
     <div className="sd-section">
-      <span className="sd-section-title">
-        {icon && <Icon name={icon} size={15} />}
-        {children}
-      </span>
+      <span className="sd-section-title">{children}</span>
       {right && <span className="sd-section-right">{right}</span>}
     </div>
   )

@@ -2,12 +2,12 @@
 // every match hangs off it as a ticket; the live one is the loudest thing on
 // screen, finals settle into quiet results. Scorekeepers get the remote inside
 // each ticket (SdSkControls) and the existing MANCO report button/modal.
+// Icon-free: sports are named, states are words, colour carries identity.
 
 import { useData, useTeamMap } from '../../store/DataProvider'
 import { useIsScorekeeper } from '../../store/RoleContext'
 import { formatClock, useClockTick } from '../../lib/clock'
 import { MancoReportButton } from '../../screens/MancoReport'
-import Icon, { SPORT_ICON } from './icons'
 import { SdCrest, StatusTag } from './bits'
 import SdSkControls from './SkControls'
 
@@ -82,10 +82,7 @@ function SportScoreRow({ sport, data, viewer }) {
   return (
     <>
       <div className={`sd-srow sd-srow-${sport}${live ? ' is-live' : ''}`}>
-        <span className="sd-srow-name">
-          <Icon name={SPORT_ICON[sport]} size={14} />
-          {sport}
-        </span>
+        <span className="sd-srow-name">{sport}</span>
         {live && data.clock && (
           <span className="sd-srow-clock">{formatClock(data.clock, now)}</span>
         )}
@@ -95,10 +92,7 @@ function SportScoreRow({ sport, data, viewer }) {
       {viewer && data?.scorers?.length > 0 && (
         <div className="sd-feed">
           {[...data.scorers].reverse().map((sc, i) => (
-            <span className="sd-ev" key={i}>
-              <Icon name={SPORT_ICON[sport]} size={12} />
-              {sc.minute ? `${sc.minute}' ` : ''}{sc.name || 'Goal'}
-            </span>
+            <span className="sd-ev" key={i}>{sc.minute ? `${sc.minute}' ` : ''}{sc.name || 'Goal'}</span>
           ))}
         </div>
       )}

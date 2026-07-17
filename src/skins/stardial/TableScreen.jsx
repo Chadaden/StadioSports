@@ -1,11 +1,10 @@
 // Stardial TABLE — a leaderboard, not a spreadsheet. Rank numerals big, each
-// team riding its own colour spine, the leader lifted on their team colour
-// with the trophy. Same computeStandings + segmented sport switch as classic.
+// team riding its own colour spine, the leader lifted on their team colour.
+// Same computeStandings + segmented sport switch as classic. Icon-free.
 
 import { useState, useMemo } from 'react'
 import { useData } from '../../store/DataProvider'
 import { computeStandings } from '../../lib/standings'
-import Icon, { SPORT_ICON } from './icons'
 import { SdCrest } from './bits'
 
 export default function SdTableScreen() {
@@ -27,7 +26,6 @@ export default function SdTableScreen() {
             className={sport === s ? 'active' : ''}
             onClick={() => setSport(s)}
           >
-            <Icon name={SPORT_ICON[s]} size={16} />
             {s[0].toUpperCase() + s.slice(1)}
           </button>
         ))}
@@ -47,7 +45,6 @@ export default function SdTableScreen() {
             <span className="sd-lb-team">
               <SdCrest team={r.team} />
               <b>{r.team.name}</b>
-              {r.rank === 1 && anyPlayed && <Icon name="trophy" size={15} className="sd-lb-cup" />}
             </span>
             <span className="sd-lb-nums">
               <span>{r.played}</span><span>{r.won}</span><span>{r.drawn}</span><span>{r.lost}</span>
@@ -60,7 +57,6 @@ export default function SdTableScreen() {
 
       {!anyPlayed && (
         <div className="sd-empty">
-          <Icon name="trophy" size={30} />
           <b>No results yet</b>
           <span>The table fills in as round-robin matches reach full-time. Top two advance to the final; 3rd &amp; 4th meet in the playoff.</span>
         </div>

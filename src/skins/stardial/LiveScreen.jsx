@@ -3,14 +3,13 @@
 // may post announcements); only the presentation is new. The in-progress
 // pairing becomes a full-bleed broadcast scoreboard: team-colour wedges facing
 // off, the score enormous in the middle, clock ticking beneath. Everything
-// after it sits on a white sheet that slides over the board.
+// after it sits on a white sheet that slides over the board. No icons.
 
 import { useState } from 'react'
 import { useData, useTeamMap } from '../../store/DataProvider'
 import { useIsScorekeeper } from '../../store/RoleContext'
 import { PHASE_LABELS, formatClock, useClockTick } from '../../lib/clock'
-import Icon, { SPORT_ICON } from './icons'
-import { SdCrest, LivePill, ScorePop, SectionTitle, SportChip, ModeChip } from './bits'
+import { SdCrest, LivePill, ScorePop, SectionTitle, ModeChip } from './bits'
 
 export default function SdLiveScreen() {
   const { fixtures = [], announcements = [], event, isLive } = useData()
@@ -29,7 +28,7 @@ export default function SdLiveScreen() {
       <Scoreboard fixture={hero} teams={teams} live={Boolean(liveFx)} eventName={event?.name} isLiveData={isLive} />
 
       <div className="sd-sheet">
-        <SectionTitle icon="fixtures" right={upNext.length ? `${upNext.length} of ${fixtures.length}` : null}>
+        <SectionTitle right={upNext.length ? `${upNext.length} of ${fixtures.length}` : null}>
           Up next
         </SectionTitle>
         {upNext.length ? (
@@ -38,15 +37,12 @@ export default function SdLiveScreen() {
           <div className="sd-quiet">All fixtures complete — final standings are on the Table tab.</div>
         )}
 
-        <SectionTitle icon="megaphone">Announcements</SectionTitle>
+        <SectionTitle>Announcements</SectionTitle>
         {isScorekeeper && <Composer />}
         {announcements.length ? (
           <div className="sd-annlist">
             {announcements.map((a) => (
-              <div className="sd-ann" key={a.id}>
-                <span className="sd-ann-mark"><Icon name="megaphone" size={14} /></span>
-                <p>{a.body}</p>
-              </div>
+              <div className="sd-ann" key={a.id}><p>{a.body}</p></div>
             ))}
           </div>
         ) : (
@@ -105,10 +101,7 @@ function Scoreboard({ fixture, teams, live, eventName, isLiveData }) {
               ) : (
                 <span className="sd-vs">VS</span>
               )}
-              <span className="sd-mid-sport">
-                <Icon name={SPORT_ICON[primary]} size={13} />
-                {primary}
-              </span>
+              <span className="sd-mid-sport">{primary}</span>
             </div>
             <TeamPanel team={away} side="away" />
           </div>
@@ -116,7 +109,6 @@ function Scoreboard({ fixture, teams, live, eventName, isLiveData }) {
           <div className="sd-board-sub">
             {p?.status === 'live' && p.clock ? (
               <span className="sd-clockpill">
-                <Icon name="timer" size={14} />
                 <b>{formatClock(p.clock, now)}</b>
                 <span>· {(PHASE_LABELS[p.clock.phase] || '').toUpperCase()}</span>
               </span>
@@ -126,10 +118,7 @@ function Scoreboard({ fixture, teams, live, eventName, isLiveData }) {
               <span className="sd-clockpill idle">FIRST WHISTLE {fixture.slotTime}</span>
             )}
             {latest && (
-              <span className="sd-ticker">
-                <Icon name={SPORT_ICON[primary]} size={13} />
-                {latest.minute ? `${latest.minute}' ` : ''}{latest.name || 'Goal'}
-              </span>
+              <span className="sd-ticker">{latest.minute ? `${latest.minute}' ` : ''}{latest.name || 'Goal'}</span>
             )}
           </div>
 
@@ -137,7 +126,6 @@ function Scoreboard({ fixture, teams, live, eventName, isLiveData }) {
         </div>
       ) : (
         <div className="sd-board sd-board-empty">
-          <Icon name="live" size={30} />
           <b>No match in progress</b>
           <span>Scores land here the moment the first whistle goes.</span>
         </div>
@@ -162,10 +150,7 @@ function AltSportStrip({ fixture, sport }) {
   const scored = s?.status === 'live' || s?.status === 'final'
   return (
     <div className="sd-alt">
-      <span className="sd-alt-name">
-        <Icon name={SPORT_ICON[sport]} size={14} />
-        {sport}
-      </span>
+      <span className="sd-alt-name">{sport}</span>
       {scored ? (
         <span className="sd-alt-score">
           {s.home}<i>–</i>{s.away}
@@ -194,10 +179,6 @@ function UpNextRow({ fixture, teams }) {
       <span className="sd-next-names">
         <b>{home?.name}</b> <i>vs</i> <b>{away?.name}</b>
       </span>
-      <span className="sd-next-sports">
-        <SportChip sport="soccer" size={12} />
-        <SportChip sport="netball" size={12} />
-      </span>
     </div>
   )
 }
@@ -214,7 +195,7 @@ function Composer() {
         value={body}
         onChange={(e) => setBody(e.target.value)}
       />
-      <button disabled={!body.trim()} onClick={submit}><Icon name="megaphone" size={16} />Post</button>
+      <button disabled={!body.trim()} onClick={submit}>Post</button>
     </div>
   )
 }

@@ -1,14 +1,14 @@
 // Stardial scorekeeper panel — designed like a hardware remote: one glance,
 // one thumb. Logic is a faithful port of screens/ScorekeeperControls.jsx —
 // identical action calls, minute capture and picker flows — only the
-// presentation changed. Classic remains untouched.
+// presentation changed. Icon-free: labels are words, "+" is typography, card
+// colour is spelled out. Classic remains untouched.
 
 import { useState } from 'react'
 import { useData, useTeamMap } from '../../store/DataProvider'
 import {
   PHASE_LABELS, clockMinute, formatClock, isClockRunning, useClockTick,
 } from '../../lib/clock'
-import Icon, { SPORT_ICON } from './icons'
 import { LivePill, ScorePop } from './bits'
 
 export default function SdSkControls({ fixture }) {
@@ -37,12 +37,11 @@ function SportRemote({ fixture, sport }) {
     return (
       <div className={`sd-remote sd-remote-${sport}`}>
         <div className="sd-remote-head">
-          <span className="sd-remote-sport"><Icon name={SPORT_ICON[sport]} size={16} />{sport}</span>
+          <span className="sd-remote-sport">{sport}</span>
           <span className="sd-tag">UPCOMING</span>
         </div>
         <button className="sd-kickoff" onClick={() => actions.startSport(fixture.id, sport)}>
-          <Icon name="whistle" size={20} />
-          Kick off {sport}
+          <b>Kick off {sport}</b>
           <small>clock starts</small>
         </button>
       </div>
@@ -58,23 +57,20 @@ function SportRemote({ fixture, sport }) {
   return (
     <div className={`sd-remote sd-remote-${sport}${locked ? ' is-locked' : ''}`}>
       <div className="sd-remote-head">
-        <span className="sd-remote-sport"><Icon name={SPORT_ICON[sport]} size={16} />{sport}</span>
+        <span className="sd-remote-sport">{sport}</span>
         {locked ? <span className="sd-tag sd-tag-final">FULL-TIME</span> : <LivePill />}
       </div>
 
       {s.clock && (
         <div className="sd-clockbox">
-          <Icon name="timer" size={18} className="sd-clockbox-ic" />
-          <b>{formatClock(s.clock, now)}</b>
+          <b className="sd-clockbox-time">{formatClock(s.clock, now)}</b>
           <span className="sd-clockbox-phase">{(PHASE_LABELS[s.clock.phase] || '').toUpperCase()}</span>
           {!locked && (running ? (
             <button className="sd-clockbtn hold" onClick={() => actions.pauseClock(fixture.id, sport)}>
-              <Icon name="pause" size={13} />
               {s.clock.phase === 'h1' ? 'Half-time' : 'Pause'}
             </button>
           ) : (
             <button className="sd-clockbtn go" onClick={() => actions.resumeClock(fixture.id, sport)}>
-              <Icon name="play" size={13} />
               {s.clock.phase === 'ht' ? 'Start 2nd half' : 'Resume'}
             </button>
           ))}
@@ -92,13 +88,11 @@ function SportRemote({ fixture, sport }) {
       {!locked && (
         <div className="sd-goalrow">
           <button className="sd-goalbtn" style={{ '--tc': home?.colorHex }} onClick={() => openGoalPicker('home')}>
-            <span className="sd-goalbtn-plus"><Icon name="plus" size={16} /></span>
-            GOAL
+            <b>+ Goal</b>
             <small>{home?.name}</small>
           </button>
           <button className="sd-goalbtn" style={{ '--tc': away?.colorHex }} onClick={() => openGoalPicker('away')}>
-            <span className="sd-goalbtn-plus"><Icon name="plus" size={16} /></span>
-            GOAL
+            <b>+ Goal</b>
             <small>{away?.name}</small>
           </button>
         </div>
@@ -116,19 +110,16 @@ function SportRemote({ fixture, sport }) {
         <div className="sd-events">
           {s.scorers.map((sc, i) => (
             <span className="sd-ev" key={`s${i}`}>
-              <Icon name={SPORT_ICON[sport]} size={12} />
               {sc.minute ? `${sc.minute}' ` : ''}{sc.name || 'Goal'}
               {!locked && (
                 <button className="sd-ev-x" aria-label="Remove goal"
-                  onClick={() => actions.removeGoal(fixture.id, sport, i)}>
-                  <Icon name="x" size={11} />
-                </button>
+                  onClick={() => actions.removeGoal(fixture.id, sport, i)}>×</button>
               )}
             </span>
           ))}
           {s.cards.map((c, i) => (
             <span className={`sd-ev sd-ev-${c.type}`} key={`c${i}`}>
-              <Icon name="card" size={12} />
+              <b className="sd-ev-kind">{c.type === 'red' ? 'Red' : 'Yellow'}</b>
               {c.minute ? `${c.minute}' ` : ''}{c.name || 'Player'}
             </span>
           ))}
@@ -139,7 +130,7 @@ function SportRemote({ fixture, sport }) {
         <>
           <div className="sd-sk-actions">
             <button className="sd-cardbtn" onClick={() => setPicker(picker?.kind === 'card' ? null : { kind: 'card' })}>
-              <Icon name="card" size={15} />Card
+              + Card
             </button>
             <button className="sd-publish" onClick={() => actions.publishSport(fixture.id, sport)}>
               Publish full-time
@@ -153,9 +144,7 @@ function SportRemote({ fixture, sport }) {
       )}
 
       {locked && (
-        <button className="sd-reopen" onClick={() => actions.reopenSport(fixture.id, sport)}>
-          <Icon name="undo" size={14} />Reopen match
-        </button>
+        <button className="sd-reopen" onClick={() => actions.reopenSport(fixture.id, sport)}>Reopen match</button>
       )}
     </div>
   )
@@ -225,8 +214,8 @@ function CardPicker({ fixture, sport, home, away, onDone }) {
         <button className={teamId === away?.id ? 'active' : ''} style={{ '--tc': away?.colorHex }} onClick={() => setTeamId(away.id)}>{away?.code}</button>
       </div>
       <div className="sd-seg">
-        <button className={cardType === 'yellow' ? 'active card-y' : ''} onClick={() => setCardType('yellow')}><Icon name="card" size={13} />Yellow</button>
-        <button className={cardType === 'red' ? 'active card-r' : ''} onClick={() => setCardType('red')}><Icon name="card" size={13} />Red</button>
+        <button className={cardType === 'yellow' ? 'active card-y' : ''} onClick={() => setCardType('yellow')}>Yellow</button>
+        <button className={cardType === 'red' ? 'active card-r' : ''} onClick={() => setCardType('red')}>Red</button>
       </div>
       <input className="sd-picker-min" type="number" inputMode="numeric" placeholder="Minute (optional)"
         value={minute} onChange={(e) => setMinute(e.target.value)} />

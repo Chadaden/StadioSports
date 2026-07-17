@@ -6,24 +6,19 @@
 //
 // Live / Fixtures / Table / Schedule are fully rebuilt Stardial screens.
 // Team & Travel (manager-only) reuse the classic screens inside this shell —
-// same features, consistent frame.
+// same features, consistent frame. Icon-free throughout; the tab bar is a
+// text bar with a coloured active indicator.
 
 import { useRole } from '../../store/RoleContext'
 import { useData } from '../../store/DataProvider'
 import { ALL_TABS } from '../../components/BottomTabBar'
 import TeamScreen from '../../screens/TeamScreen'
 import TravelScreen from '../../screens/TravelScreen'
-import Icon from './icons'
 import { ModeChip } from './bits'
 import SdLiveScreen from './LiveScreen'
 import SdFixturesScreen from './FixturesScreen'
 import SdTableScreen from './TableScreen'
 import SdScheduleScreen from './ScheduleScreen'
-
-const TAB_ICON = {
-  live: 'live', team: 'team', fixtures: 'fixtures',
-  table: 'table', travel: 'travel', schedule: 'schedule',
-}
 
 const TAB_TITLE = {
   live: 'Live', team: 'My Team', fixtures: 'Fixtures',
@@ -36,10 +31,7 @@ export default function StardialShell({ tab, onTab, contentRef, loading }) {
   if (loading) {
     return (
       <div className="sd-app">
-        <div className="sd-loading">
-          <Icon name="live" size={30} />
-          <b>Loading live data…</b>
-        </div>
+        <div className="sd-loading"><b>Loading live data…</b></div>
       </div>
     )
   }
@@ -92,8 +84,7 @@ function SdTabBar({ active, onChange }) {
           style={{ '--tab-accent': t.accent }}
           onClick={() => onChange(t.id)}
         >
-          <span className="sd-tab-ic"><Icon name={TAB_ICON[t.id] || 'live'} size={21} /></span>
-          <span className="sd-tab-label">{t.label}</span>
+          {t.label}
         </button>
       ))}
     </nav>
