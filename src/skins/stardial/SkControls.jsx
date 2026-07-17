@@ -82,7 +82,7 @@ function SportRemote({ fixture, sport }) {
                 ) : s.clock.phase !== 'ht' ? (
                   <button className="sd-clockbtn go" onClick={() => actions.resumeClock(fixture.id, sport)}><Icon name="play" size={13} />Resume</button>
                 ) : null}
-                {!running && (s.clock.phase === 'h1' || s.clock.phase === 'ht') && (
+                {!running && (s.clock.phase === 'ht' || (s.clock.phase === 'h1' && s.clock.baseSeconds > 0)) && (
                   <button className="sd-clockbtn half" onClick={() => actions.startSecondHalf(fixture.id, sport)}><Icon name="play" size={13} />Second half</button>
                 )}
                 <button className="sd-clockbtn reset" onClick={() => {

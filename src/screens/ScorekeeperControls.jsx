@@ -78,7 +78,7 @@ function SportControls({ fixture, sport }) {
                 ) : s.clock.phase !== 'ht' ? (
                   <button className="sk-clock-btn resume" onClick={() => actions.resumeClock(fixture.id, sport)}>▶ Resume timer</button>
                 ) : null}
-                {!running && (s.clock.phase === 'h1' || s.clock.phase === 'ht') && (
+                {!running && (s.clock.phase === 'ht' || (s.clock.phase === 'h1' && s.clock.baseSeconds > 0)) && (
                   <button className="sk-clock-btn second-half" onClick={() => actions.startSecondHalf(fixture.id, sport)}>▶ Start second half</button>
                 )}
                 <button className="sk-clock-btn reset" onClick={() => {
