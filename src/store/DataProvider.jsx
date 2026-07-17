@@ -14,6 +14,16 @@ import {
 import { db, EVENT_ID, isFirebaseConfigured } from '../firebase/config'
 import { buildSeedSnapshot, MILESTONES } from '../data/seed'
 import { elapsedSeconds } from '../lib/clock'
+import {
+  activateSportState,
+  addSinBinCardState,
+  adjustScoreState,
+  pauseClockState,
+  resetClockState,
+  resumeClockState,
+  startClockState,
+  startSecondHalfState,
+} from '../lib/matchState'
 import { useRole } from './RoleContext'
 
 const DataContext = createContext(null)
@@ -137,41 +147,26 @@ export function DataProvider({ children }) {
     }
 
     return {
-      // Kick-off: upcoming → live and the match clock starts (1st half).
+      // Open the controls without starting the match clock.
       startSport: (fixtureId, sport) =>
-        writeSport(fixtureId, sport, (s) => ({
-          ...s,
-          status: 'live',
-          clock: { phase: 'h1', runningSince: new Date().toISOString(), baseSeconds: 0 },
-        })),
+        writeSport(fixtureId, sport, activateSportState),
+
+      startClock: (fixtureId, sport) =>
+        writeSport(fixtureId, sport, startClockState),
 
       // Half-time / pause: bank the played seconds, stop ticking.
       pauseClock: (fixtureId, sport) =>
-        writeSport(fixtureId, sport, (s) => {
-          if (!s.clock?.runningSince) return s
-          return {
-            ...s,
-            clock: {
-              phase: s.clock.phase === 'h1' ? 'ht' : 'paused',
-              runningSince: null,
-              baseSeconds: Math.round(elapsedSeconds(s.clock)),
-            },
-          }
-        }),
+        writeSport(fixtureId, sport, pauseClockState),
 
       // Start 2nd half / resume: clock ticks again from the banked seconds.
       resumeClock: (fixtureId, sport) =>
-        writeSport(fixtureId, sport, (s) => {
-          if (!s.clock || s.clock.runningSince) return s
-          return {
-            ...s,
-            clock: {
-              phase: 'h2',
-              runningSince: new Date().toISOString(),
-              baseSeconds: s.clock.baseSeconds || 0,
-            },
-          }
-        }),
+        writeSport(fixtureId, sport, resumeClockState),
+
+      startSecondHalf: (fixtureId, sport) =>
+        writeSport(fixtureId, sport, startSecondHalfState),
+
+      resetClock: (fixtureId, sport) =>
+        writeSport(fixtureId, sport, resetClockState),
 
       // Goal: bumps the score AND logs the scorer (with the clock minute
       // captured in the UI at tap time) in one write — pushes to every viewer.
@@ -184,11 +179,7 @@ export function DataProvider({ children }) {
 
       // +/- score corrections (also auto-starts an upcoming match on first tap)
       adjustScore: (fixtureId, sport, side, delta) =>
-        writeSport(fixtureId, sport, (s) => ({
-          ...s,
-          status: s.status === 'upcoming' ? 'live' : s.status,
-          [side]: Math.max(0, (s[side] || 0) + delta),
-        })),
+        writeSport(fixtureId, sport, (s) => adjustScoreState(s, side, delta)),
 
       // Undo a mis-tapped goal: drops the scorer entry AND the point in the
       // same write (two separate writes could race each other on stale state).
@@ -209,7 +200,7 @@ export function DataProvider({ children }) {
         writeSport(fixtureId, sport, (s) => ({ ...s, scorers: [...s.scorers, scorer] })),
 
       addCard: (fixtureId, sport, card) =>
-        writeSport(fixtureId, sport, (s) => ({ ...s, cards: [...s.cards, card] })),
+        writeSport(fixtureId, sport, (s) => addSinBinCardState(s, card)),
 
       // publish (live → final, locks, clock stops) / reopen (final → live)
       publishSport: (fixtureId, sport) =>

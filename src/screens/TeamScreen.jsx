@@ -93,7 +93,7 @@ function SportGroup({ title, players, onOpen }) {
         {players.map((p) => {
           const inner = (
             <>
-              <span className="nm">{p.firstName} {p.surname}</span>
+              <span className="nm">{p.shirtNumber ? `#${p.shirtNumber} ` : ''}{p.firstName} {p.surname}</span>
               <span className="tags">
                 {p.isGK && <span className="tag-role tag-gk">GK</span>}
                 {p.role === 'support' && <span className="tag-role">Support</span>}

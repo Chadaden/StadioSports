@@ -70,7 +70,7 @@ function AttendancePanel({ team }) {
               {p.present ? '✓' : ''}
             </button>
             <button className="att-name att-open" onClick={() => setOpenPlayerId(p.id)}>
-              {p.firstName} {p.surname}
+              {p.shirtNumber ? `#${p.shirtNumber} ` : ''}{p.firstName} {p.surname}
             </button>
             <span className="att-tag muted">{p.sport ?? p.role}</span>
             <span className="att-chev muted">›</span>

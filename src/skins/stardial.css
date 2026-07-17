@@ -416,10 +416,11 @@
 .sd-kickoff small { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.65; }
 
 .sd-clockbox {
-  display: flex; align-items: center; gap: 10px;
+  display: block;
   background: linear-gradient(150deg, var(--sd-ink), var(--sd-ink-2));
   border-radius: 14px; padding: 11px 14px; color: #fff;
 }
+.sd-clockreadout { display: flex; align-items: center; gap: 10px; }
 .sd-clockbox-ic { color: rgba(255, 255, 255, 0.55); flex: none; }
 .sd-clockbox b { font-family: var(--mono, ui-monospace); font-size: 23px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .sd-clockbox-phase { flex: 1; font-size: 9px; font-weight: 800; letter-spacing: 0.14em; color: rgba(255, 255, 255, 0.55); }
@@ -430,6 +431,11 @@
 }
 .sd-clockbtn.hold { background: var(--sd-orange); color: #33210a; }
 .sd-clockbtn.go { background: var(--sd-lime); color: #1d2b07; }
+.sd-clockbtn.half { background: var(--sd-sky); color: #08243a; }
+.sd-clockbtn.reset { background: rgba(255,255,255,.14); color: #fff; }
+.sd-clockactions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 9px; }
+.sd-clockactions .sd-clockbtn { justify-content: center; padding: 0 8px; }
+.sd-half-alert { margin: 7px 0 0; padding: 8px 10px; border-radius: 10px; background: #fff3cd; border: 1px solid #eed27b; color: #684f00; font-size: 11.5px; font-weight: 900; }
 
 .sd-sk-score { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 14px 0; }
 .sd-sk-code {
@@ -445,6 +451,7 @@
 .sd-sk-digits i { font-style: normal; font-size: 22px; color: #b4bac0; padding: 0 6px; transform: translateY(-4px); }
 
 .sd-goalrow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sd-goalteam { display: flex; flex-direction: column; gap: 5px; }
 .sd-goalbtn {
   min-height: 72px; border: none; border-radius: 16px; cursor: pointer;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
@@ -458,8 +465,11 @@
   width: 24px; height: 24px; margin-bottom: 3px;
   border-radius: 50%; background: rgba(255, 255, 255, 0.22);
 }
+.sd-goalremove { min-height: 32px; border: 1px solid var(--sd-line); border-radius: 10px; background: var(--sd-card); color: var(--sd-ink-faint); font-size: 11px; font-weight: 800; cursor: pointer; }
+.sd-goalremove:disabled { opacity: .4; cursor: not-allowed; }
 
 .sd-events { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.sd-ev-countdown { font-family: var(--mono, ui-monospace); margin-left: 3px; }
 
 .sd-sk-actions { display: flex; gap: 10px; margin-top: 12px; }
 .sd-cardbtn {

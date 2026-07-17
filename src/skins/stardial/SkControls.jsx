@@ -6,8 +6,9 @@
 import { useState } from 'react'
 import { useData, useTeamMap } from '../../store/DataProvider'
 import {
-  PHASE_LABELS, clockMinute, formatClock, isClockRunning, useClockTick,
+  PHASE_LABELS, clockMinute, formatClock, isClockRunning, useFirstHalfAlert, useSecondTick,
 } from '../../lib/clock'
+import { formatDurationSeconds, sinBinRemainingSeconds } from '../../lib/matchState'
 import Icon, { SPORT_ICON } from './icons'
 import { LivePill, ScorePop } from './bits'
 
@@ -31,7 +32,10 @@ function SportRemote({ fixture, sport }) {
   const home = teams[fixture.homeTeamId]
   const away = teams[fixture.awayTeamId]
   const [picker, setPicker] = useState(null) // { kind:'goal', side, minute } | { kind:'card' } | null
-  const now = useClockTick(s.clock)
+  const running = isClockRunning(s.clock)
+  const hasActiveSinBin = (s.cards || []).some((card) => sinBinRemainingSeconds(card) > 0)
+  const now = useSecondTick(running || hasActiveSinBin)
+  const firstHalfReached = useFirstHalfAlert(s.clock, now)
 
   if (s.status === 'upcoming') {
     return (
@@ -42,15 +46,14 @@ function SportRemote({ fixture, sport }) {
         </div>
         <button className="sd-kickoff" onClick={() => actions.startSport(fixture.id, sport)}>
           <Icon name="whistle" size={20} />
-          Kick off {sport}
-          <small>clock starts</small>
+          Open {sport} controls
+          <small>timer stays stopped</small>
         </button>
       </div>
     )
   }
 
   const locked = s.status === 'final'
-  const running = isClockRunning(s.clock)
   // Reads the real clock at tap time, not the 1s render tick.
   const openGoalPicker = (side) =>
     setPicker({ kind: 'goal', side, minute: s.clock ? clockMinute(s.clock) : null })
@@ -63,22 +66,35 @@ function SportRemote({ fixture, sport }) {
       </div>
 
       {s.clock && (
-        <div className="sd-clockbox">
-          <Icon name="timer" size={18} className="sd-clockbox-ic" />
-          <b>{formatClock(s.clock, now)}</b>
-          <span className="sd-clockbox-phase">{(PHASE_LABELS[s.clock.phase] || '').toUpperCase()}</span>
-          {!locked && (running ? (
-            <button className="sd-clockbtn hold" onClick={() => actions.pauseClock(fixture.id, sport)}>
-              <Icon name="pause" size={13} />
-              {s.clock.phase === 'h1' ? 'Half-time' : 'Pause'}
-            </button>
-          ) : (
-            <button className="sd-clockbtn go" onClick={() => actions.resumeClock(fixture.id, sport)}>
-              <Icon name="play" size={13} />
-              {s.clock.phase === 'ht' ? 'Start 2nd half' : 'Resume'}
-            </button>
-          ))}
-        </div>
+        <>
+          <div className="sd-clockbox">
+            <div className="sd-clockreadout">
+              <Icon name="timer" size={18} className="sd-clockbox-ic" />
+              <b>{formatClock(s.clock, now)}</b>
+              <span className="sd-clockbox-phase">{(PHASE_LABELS[s.clock.phase] || '').toUpperCase()}</span>
+            </div>
+            {!locked && (
+              <div className="sd-clockactions">
+                {running ? (
+                  <button className="sd-clockbtn hold" onClick={() => actions.pauseClock(fixture.id, sport)}><Icon name="pause" size={13} />Pause</button>
+                ) : s.clock.phase === 'h1' && !s.clock.baseSeconds ? (
+                  <button className="sd-clockbtn go" onClick={() => actions.startClock(fixture.id, sport)}><Icon name="play" size={13} />Start timer</button>
+                ) : s.clock.phase !== 'ht' ? (
+                  <button className="sd-clockbtn go" onClick={() => actions.resumeClock(fixture.id, sport)}><Icon name="play" size={13} />Resume</button>
+                ) : null}
+                {!running && (s.clock.phase === 'h1' || s.clock.phase === 'ht') && (
+                  <button className="sd-clockbtn half" onClick={() => actions.startSecondHalf(fixture.id, sport)}><Icon name="play" size={13} />Second half</button>
+                )}
+                <button className="sd-clockbtn reset" onClick={() => {
+                  if (window.confirm('Reset this timer to 0:00 and the first half? Scores and events will remain.')) {
+                    actions.resetClock(fixture.id, sport)
+                  }
+                }}><Icon name="undo" size={13} />Reset</button>
+              </div>
+            )}
+          </div>
+          {firstHalfReached && !locked && <div className="sd-half-alert">10:00 reached — pause when the whistle goes.</div>}
+        </>
       )}
 
       <div className="sd-sk-score">
@@ -91,20 +107,29 @@ function SportRemote({ fixture, sport }) {
 
       {!locked && (
         <div className="sd-goalrow">
-          <button className="sd-goalbtn" style={{ '--tc': home?.colorHex }} onClick={() => openGoalPicker('home')}>
-            <span className="sd-goalbtn-plus"><Icon name="plus" size={16} /></span>
-            GOAL
-            <small>{home?.name}</small>
-          </button>
-          <button className="sd-goalbtn" style={{ '--tc': away?.colorHex }} onClick={() => openGoalPicker('away')}>
-            <span className="sd-goalbtn-plus"><Icon name="plus" size={16} /></span>
-            GOAL
-            <small>{away?.name}</small>
-          </button>
+          {['home', 'away'].map((side) => {
+            const team = side === 'home' ? home : away
+            return (
+              <div className="sd-goalteam" key={side}>
+                <button className="sd-goalbtn" style={{ '--tc': team?.colorHex }}
+                  onClick={() => sport === 'netball'
+                    ? actions.adjustScore(fixture.id, sport, side, 1)
+                    : openGoalPicker(side)}>
+                  <span className="sd-goalbtn-plus"><Icon name="plus" size={16} /></span>
+                  GOAL
+                  <small>{team?.name}</small>
+                </button>
+                {sport === 'netball' && (
+                  <button className="sd-goalremove" disabled={!s[side]}
+                    onClick={() => actions.adjustScore(fixture.id, sport, side, -1)}>− Remove goal</button>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
 
-      {picker?.kind === 'goal' && (
+      {sport === 'soccer' && picker?.kind === 'goal' && (
         <GoalPicker
           fixture={fixture} sport={sport} side={picker.side} minute={picker.minute}
           team={picker.side === 'home' ? home : away}
@@ -126,12 +151,16 @@ function SportRemote({ fixture, sport }) {
               )}
             </span>
           ))}
-          {s.cards.map((c, i) => (
-            <span className={`sd-ev sd-ev-${c.type}`} key={`c${i}`}>
-              <Icon name="card" size={12} />
-              {c.minute ? `${c.minute}' ` : ''}{c.name || 'Player'}
-            </span>
-          ))}
+          {s.cards.map((c, i) => {
+            const remaining = sinBinRemainingSeconds(c, now)
+            return (
+              <span className={`sd-ev sd-ev-${c.type}`} key={`c${i}`}>
+                <Icon name="card" size={12} />
+                {c.minute ? `${c.minute}' ` : ''}{c.name || 'Player'}
+                <b className="sd-ev-countdown">{remaining ? formatDurationSeconds(remaining) : 'served'}</b>
+              </span>
+            )
+          })}
         </div>
       )}
 
@@ -183,7 +212,7 @@ function GoalPicker({ fixture, sport, side, minute, team, onDone }) {
         <div className="sd-picker-list">
           {roster.map((p) => (
             <button key={p.id} onClick={() => commit(`${p.firstName} ${p.surname}`, p.id)}>
-              {p.firstName} {p.surname}{p.isGK ? ' (GK)' : ''}
+              {p.shirtNumber ? `#${p.shirtNumber} ` : ''}{p.firstName} {p.surname}{p.isGK ? ' (GK)' : ''}
             </button>
           ))}
           <button className="sd-picker-unknown" onClick={() => commit(null)}>Unknown / own goal</button>
@@ -234,7 +263,7 @@ function CardPicker({ fixture, sport, home, away, onDone }) {
         <div className="sd-picker-list">
           {roster.map((p) => (
             <button key={p.id} onClick={() => commit(`${p.firstName} ${p.surname}`, p.id)}>
-              {p.firstName} {p.surname}{p.isGK ? ' (GK)' : ''}
+              {p.shirtNumber ? `#${p.shirtNumber} ` : ''}{p.firstName} {p.surname}{p.isGK ? ' (GK)' : ''}
             </button>
           ))}
         </div>

@@ -10,7 +10,12 @@
 // Elapsed time is derived, never ticked in the database — one write at each
 // whistle, every device computes the same minute from its own clock.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import {
+  elapsedClockSeconds,
+  formatDurationSeconds,
+  shouldAlertFirstHalfEnd,
+} from './matchState'
 
 export const PHASE_LABELS = {
   h1: '1st half',
@@ -25,10 +30,7 @@ export function isClockRunning(clock) {
 }
 
 export function elapsedSeconds(clock, now = Date.now()) {
-  if (!clock) return 0
-  const base = clock.baseSeconds || 0
-  if (!clock.runningSince) return base
-  return base + Math.max(0, (now - Date.parse(clock.runningSince)) / 1000)
+  return elapsedClockSeconds(clock, now)
 }
 
 // Football-style minute: 0:00–0:59 is the 1st minute.
@@ -37,10 +39,18 @@ export function clockMinute(clock, now = Date.now()) {
 }
 
 export function formatClock(clock, now = Date.now()) {
-  const total = Math.floor(elapsedSeconds(clock, now))
-  const m = Math.floor(total / 60)
-  const s = total % 60
-  return `${m}:${String(s).padStart(2, '0')}`
+  return formatDurationSeconds(elapsedSeconds(clock, now))
+}
+
+export function useSecondTick(active) {
+  const [now, setNow] = useState(Date.now)
+  useEffect(() => {
+    if (!active) return
+    const first = setTimeout(() => setNow(Date.now()), 0)
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => { clearTimeout(first); clearInterval(id) }
+  }, [active])
+  return now
 }
 
 // Re-render every second while any provided clock is running, returning a
@@ -48,12 +58,19 @@ export function formatClock(clock, now = Date.now()) {
 // (elapsedSeconds treats that as "just started" — off by under a second).
 export function useClockTick(...clocks) {
   const running = clocks.some((c) => isClockRunning(c))
-  const [now, setNow] = useState(0)
+  return useSecondTick(running)
+}
+
+// Browser alert is deliberately local-only: it warns the active scorekeeper
+// once and never creates per-second database writes or spectator pop-ups.
+export function useFirstHalfAlert(clock, now) {
+  const alerted = useRef(false)
+  const reached = shouldAlertFirstHalfEnd(clock, now)
   useEffect(() => {
-    if (!running) return
-    const first = setTimeout(() => setNow(Date.now()), 0)
-    const id = setInterval(() => setNow(Date.now()), 1000)
-    return () => { clearTimeout(first); clearInterval(id) }
-  }, [running])
-  return now
+    if (clock?.phase !== 'h1' || elapsedSeconds(clock, now) < 1) alerted.current = false
+    if (!reached || alerted.current) return
+    alerted.current = true
+    window.alert('First half has reached 10:00. Pause the timer when the half ends.')
+  }, [clock, now, reached])
+  return reached
 }
