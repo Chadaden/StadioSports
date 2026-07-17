@@ -322,11 +322,12 @@ table.standings tr.leader .rank { color: var(--orange); font-weight: 800; }
 
 .sk-events { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; }
 .ev-chip { font-size: 11px; font-weight: 600; background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-pill); padding: 3px 9px; color: var(--ink); display: inline-flex; align-items: center; gap: 5px; }
+.ev-countdown { font-family: var(--mono); font-size: 11px; padding-left: 3px; }
 .ev-x { background: none; border: none; padding: 0 0 0 2px; font-size: 11px; color: var(--red); cursor: pointer; font-weight: 800; }
 
 /* ---- match clock + goal flow (scorekeeper §8) ----------------------------- */
 .sk-clock {
-  display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;
   background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-control); padding: 8px 12px;
 }
 .sk-clock-time { font-family: var(--mono); font-size: 19px; font-weight: 700; color: #3f4346; }
@@ -336,16 +337,24 @@ table.standings tr.leader .rank { color: var(--orange); font-weight: 800; }
   border-radius: var(--radius-pill); font-size: 12.5px; font-weight: 700; color: #3f4346; cursor: pointer;
 }
 .sk-clock-btn.resume { border-color: var(--blue); background: var(--blue); color: #fff; }
+.sk-clock-actions { width: 100%; display: flex; flex-wrap: wrap; gap: 6px; }
+.sk-clock-actions .sk-clock-btn { flex: 1; padding: 0 9px; }
+.sk-clock-btn.second-half { border-color: var(--lime); background: var(--lime); color: #33420f; }
+.sk-clock-btn.reset { flex: 0 0 auto; background: #fff; color: var(--ink-soft); }
+.sk-half-alert { margin: -2px 0 10px; padding: 8px 10px; border-radius: var(--radius-control); background: #fff3cd; border: 1px solid #eed27b; color: #684f00; font-size: 12px; font-weight: 800; }
 .sk-scoreline {
   display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 10px;
   font-size: 13px; font-weight: 800; color: var(--ink-soft);
 }
 .sk-scoreline .sk-score { font-family: var(--mono); font-size: 24px; font-weight: 700; color: #3f4346; }
-.sk-goal-row { display: flex; gap: 8px; }
+.sk-goal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sk-goal-team { display: flex; flex-direction: column; gap: 5px; }
 .sk-goal {
   flex: 1; min-height: 52px; border: none; border-radius: var(--radius-control);
   background: var(--blue); color: #fff; font-size: 14px; font-weight: 800; cursor: pointer;
 }
+.sk-goal-remove { min-height: 32px; border: 1px solid var(--line); border-radius: var(--radius-control); background: #fff; color: var(--ink-soft); font-size: 11.5px; font-weight: 700; cursor: pointer; }
+.sk-goal-remove:disabled { opacity: .4; cursor: not-allowed; }
 .picker-title { font-size: 12.5px; font-weight: 700; color: #3f4346; margin-bottom: 10px; }
 .picker-unknown { color: var(--ink-soft) !important; font-weight: 600 !important; }
 

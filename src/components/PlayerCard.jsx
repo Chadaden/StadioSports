@@ -59,7 +59,7 @@ export default function PlayerCard({ player, team, profile, onClose }) {
         <div className="pc-head">
           <Crest team={team} />
           <div className="pc-title">
-            <div className="pc-name">{player.firstName} {player.surname}</div>
+            <div className="pc-name">{player.shirtNumber ? `#${player.shirtNumber} ` : ''}{player.firstName} {player.surname}</div>
             <div className="pc-tags">
               {player.sport && <span className="tag-role">{player.sport}</span>}
               {player.isGK && <span className="tag-role tag-gk">GK</span>}

@@ -2,12 +2,14 @@ import { useState } from 'react'
 import { useData, useTeamMap } from '../store/DataProvider'
 import { SPORT_GLYPH } from '../lib/constants'
 import {
-  PHASE_LABELS, clockMinute, formatClock, isClockRunning, useClockTick,
+  PHASE_LABELS, clockMinute, formatClock, isClockRunning, useFirstHalfAlert, useSecondTick,
 } from '../lib/clock'
+import { formatDurationSeconds, sinBinRemainingSeconds } from '../lib/matchState'
 
 // Scorekeeper live-scoring panel (§8), rendered inside a fixture card only when
 // role === scorekeeper. Tap-driven (§5.2). Format per the sheet: 20-minute
-// games, 2 × 10-minute halves. Kick-off starts the match clock; a goal tap
+// games, 2 × 10-minute halves. Match activation and timer start are separate;
+// a soccer goal tap
 // captures the clock minute and opens the roster picker for that side, so
 // "20' Jones" lands on every spectator's screen in one flow.
 export default function ScorekeeperControls({ fixture }) {
@@ -32,21 +34,23 @@ function SportControls({ fixture, sport }) {
   const away = teams[fixture.awayTeamId]
   // picker: { kind: 'goal', side, minute } | { kind: 'card' } | null
   const [picker, setPicker] = useState(null)
-  const now = useClockTick(s.clock)
+  const running = isClockRunning(s.clock)
+  const hasActiveSinBin = (s.cards || []).some((card) => sinBinRemainingSeconds(card) > 0)
+  const now = useSecondTick(running || hasActiveSinBin)
+  const firstHalfReached = useFirstHalfAlert(s.clock, now)
 
   if (s.status === 'upcoming') {
     return (
       <div className={`sk-sport sk-sport-${sport}`}>
         <div className="sk-head"><span>{SPORT_GLYPH[sport]} {cap(sport)}</span><span className="chip chip-upcoming">Upcoming</span></div>
         <button className="sk-start" onClick={() => actions.startSport(fixture.id, sport)}>
-          ▶ Kick off {sport} — clock starts
+          Open {sport} controls — timer stays stopped
         </button>
       </div>
     )
   }
 
   const locked = s.status === 'final'
-  const running = isClockRunning(s.clock)
   // Event handler — reads the real clock at tap time, not the 1s render tick.
   const openGoalPicker = (side) =>
     setPicker({ kind: 'goal', side, minute: s.clock ? clockMinute(s.clock) : null })
@@ -61,19 +65,32 @@ function SportControls({ fixture, sport }) {
       </div>
 
       {s.clock && (
-        <div className="sk-clock">
-          <span className="sk-clock-time">⏱ {formatClock(s.clock, now)}</span>
-          <span className="sk-clock-phase">{PHASE_LABELS[s.clock.phase] || ''}</span>
-          {!locked && (running ? (
-            <button className="sk-clock-btn" onClick={() => actions.pauseClock(fixture.id, sport)}>
-              ⏸ {s.clock.phase === 'h1' ? 'Half-time' : 'Pause'}
-            </button>
-          ) : (
-            <button className="sk-clock-btn resume" onClick={() => actions.resumeClock(fixture.id, sport)}>
-              ▶ {s.clock.phase === 'ht' ? 'Start 2nd half' : 'Resume'}
-            </button>
-          ))}
-        </div>
+        <>
+          <div className="sk-clock">
+            <span className="sk-clock-time">⏱ {formatClock(s.clock, now)}</span>
+            <span className="sk-clock-phase">{PHASE_LABELS[s.clock.phase] || ''}</span>
+            {!locked && (
+              <div className="sk-clock-actions">
+                {running ? (
+                  <button className="sk-clock-btn" onClick={() => actions.pauseClock(fixture.id, sport)}>⏸ Pause timer</button>
+                ) : s.clock.phase === 'h1' && !s.clock.baseSeconds ? (
+                  <button className="sk-clock-btn resume" onClick={() => actions.startClock(fixture.id, sport)}>▶ Start timer</button>
+                ) : s.clock.phase !== 'ht' ? (
+                  <button className="sk-clock-btn resume" onClick={() => actions.resumeClock(fixture.id, sport)}>▶ Resume timer</button>
+                ) : null}
+                {!running && (s.clock.phase === 'h1' || s.clock.phase === 'ht') && (
+                  <button className="sk-clock-btn second-half" onClick={() => actions.startSecondHalf(fixture.id, sport)}>▶ Start second half</button>
+                )}
+                <button className="sk-clock-btn reset" onClick={() => {
+                  if (window.confirm('Reset this timer to 0:00 and the first half? Scores and events will remain.')) {
+                    actions.resetClock(fixture.id, sport)
+                  }
+                }}>↺ Reset</button>
+              </div>
+            )}
+          </div>
+          {firstHalfReached && !locked && <div className="sk-half-alert">First half has reached 10:00 — pause when the whistle goes.</div>}
+        </>
       )}
 
       <div className="sk-scoreline">
@@ -84,16 +101,29 @@ function SportControls({ fixture, sport }) {
 
       {!locked && (
         <div className="sk-goal-row">
-          <button className="sk-goal" style={{ background: home?.colorHex }} onClick={() => openGoalPicker('home')}>
-            + {SPORT_GLYPH[sport]} {home?.code} goal
-          </button>
-          <button className="sk-goal" style={{ background: away?.colorHex }} onClick={() => openGoalPicker('away')}>
-            + {SPORT_GLYPH[sport]} {away?.code} goal
-          </button>
+          {['home', 'away'].map((side) => {
+            const team = side === 'home' ? home : away
+            return (
+              <div className="sk-goal-team" key={side}>
+                <button className="sk-goal" style={{ background: team?.colorHex }}
+                  onClick={() => sport === 'netball'
+                    ? actions.adjustScore(fixture.id, sport, side, 1)
+                    : openGoalPicker(side)}>
+                  + {SPORT_GLYPH[sport]} {team?.code} goal
+                </button>
+                {sport === 'netball' && (
+                  <button className="sk-goal-remove" disabled={!s[side]}
+                    onClick={() => actions.adjustScore(fixture.id, sport, side, -1)}>
+                    − Remove goal
+                  </button>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
 
-      {picker?.kind === 'goal' && (
+      {sport === 'soccer' && picker?.kind === 'goal' && (
         <GoalPicker
           fixture={fixture} sport={sport} side={picker.side} minute={picker.minute}
           team={picker.side === 'home' ? home : away}
@@ -114,9 +144,15 @@ function SportControls({ fixture, sport }) {
               )}
             </span>
           ))}
-          {s.cards.map((c, i) => (
-            <span className={`ev-chip ev-card-${c.type}`} key={`c${i}`}>{c.type === 'red' ? '🟥' : '🟨'} {c.minute ? `${c.minute}' ` : ''}{c.name || 'Player'}</span>
-          ))}
+          {s.cards.map((c, i) => {
+            const remaining = sinBinRemainingSeconds(c, now)
+            return (
+              <span className={`ev-chip ev-card-${c.type}`} key={`c${i}`}>
+                {c.type === 'red' ? '🟥' : '🟨'} {c.minute ? `${c.minute}' ` : ''}{c.name || 'Player'}
+                <b className="ev-countdown">{remaining ? formatDurationSeconds(remaining) : 'served'}</b>
+              </span>
+            )
+          })}
         </div>
       )}
 
@@ -163,7 +199,7 @@ function GoalPicker({ fixture, sport, side, minute, team, onDone }) {
         <div className="picker-list">
           {roster.map((p) => (
             <button key={p.id} onClick={() => commit(`${p.firstName} ${p.surname}`, p.id)}>
-              {p.firstName} {p.surname}{p.isGK ? ' (GK)' : ''}
+              {p.shirtNumber ? `#${p.shirtNumber} ` : ''}{p.firstName} {p.surname}{p.isGK ? ' (GK)' : ''}
             </button>
           ))}
           <button className="picker-unknown" onClick={() => commit(null)}>Unknown / own goal</button>
@@ -218,7 +254,7 @@ function CardPicker({ fixture, sport, home, away, onDone }) {
         <div className="picker-list">
           {roster.map((p) => (
             <button key={p.id} onClick={() => commit(`${p.firstName} ${p.surname}`, p.id)}>
-              {p.firstName} {p.surname}{p.isGK ? ' (GK)' : ''}
+              {p.shirtNumber ? `#${p.shirtNumber} ` : ''}{p.firstName} {p.surname}{p.isGK ? ' (GK)' : ''}
             </button>
           ))}
         </div>
