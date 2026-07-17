@@ -107,7 +107,7 @@ export function sinBinRemainingSeconds(card, now = Date.now()) {
   const rawStartedAt = card?.sinBinStartedAt ?? card?.issuedAt
   const startedAt = typeof rawStartedAt === 'number' ? rawStartedAt : Date.parse(rawStartedAt)
   if (!duration || !Number.isFinite(startedAt)) return 0
-  return Math.max(0, Math.ceil(duration - (now - startedAt) / 1000))
+  return Math.min(duration, Math.max(0, Math.ceil(duration - (now - startedAt) / 1000)))
 }
 
 export function formatDurationSeconds(value) {
