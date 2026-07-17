@@ -44,7 +44,7 @@ function SportControls({ fixture, sport }) {
       <div className={`sk-sport sk-sport-${sport}`}>
         <div className="sk-head"><span>{SPORT_GLYPH[sport]} {cap(sport)}</span><span className="chip chip-upcoming">Upcoming</span></div>
         <button className="sk-start" onClick={() => actions.startSport(fixture.id, sport)}>
-          Open {sport} controls — timer stays stopped
+          Start {sport} match — timer stays stopped
         </button>
       </div>
     )

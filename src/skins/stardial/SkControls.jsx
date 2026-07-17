@@ -45,7 +45,7 @@ function SportRemote({ fixture, sport }) {
           <span className="sd-tag">UPCOMING</span>
         </div>
         <button className="sd-kickoff" onClick={() => actions.startSport(fixture.id, sport)}>
-          <b>Open {sport} controls</b>
+          <b>Start {sport} match</b>
           <small>timer stays stopped</small>
         </button>
       </div>
