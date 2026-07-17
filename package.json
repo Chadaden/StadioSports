@@ -4,9 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "backfill:shirt-numbers": "node scripts/backfill-shirt-numbers.mjs",
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint src test",
+    "lint": "eslint src test scripts",
     "preview": "vite preview",
     "test": "node --test test/*.test.js"
   },
