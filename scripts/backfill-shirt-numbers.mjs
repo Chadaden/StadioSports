@@ -55,8 +55,11 @@ if (mode === 'dry-run') {
   process.exit(0)
 }
 
-const gcloud = process.platform === 'win32' ? 'gcloud.cmd' : 'gcloud'
-const accessToken = execFileSync(gcloud, ['auth', 'print-access-token'], {
+const authCommand = process.platform === 'win32' ? (process.env.ComSpec || 'cmd.exe') : 'gcloud'
+const authArgs = process.platform === 'win32'
+  ? ['/d', '/s', '/c', 'gcloud auth print-access-token']
+  : ['auth', 'print-access-token']
+const accessToken = execFileSync(authCommand, authArgs, {
   encoding: 'utf8',
   windowsHide: true,
 }).trim()
