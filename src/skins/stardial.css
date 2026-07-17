@@ -1,227 +1,701 @@
 /* ============================================================================
-   STARDIAL SKIN — an opt-in visual overhaul layered on the existing markup.
+   STARDIAL v2 — "pocket jumbotron"
    ----------------------------------------------------------------------------
-   SAFETY CONTRACT: every rule in this file is scoped under
-   :root[data-skin="stardial"]. With any other skin active these rules match
-   nothing, so the current ("classic") UI renders exactly as before. The one
-   exception is the .skin-switcher control at the very bottom, which is
-   intentionally global so you can always toggle back.
+   A complete alternate presentation layer with its own markup (sd-* classes,
+   rendered only by skins/stardial/*). Classic markup never carries these
+   classes, so classic rendering is untouched; flipping the skin off returns
+   the app to exactly what it was.
 
-   Design brief (client, 16 Jul): one bold "spotlight" match card per screen,
-   everything else quiet; broadcast-scale scores that never wrap; no
-   instructional banners; guaranteed clearance above the tab bar; premium, not
-   a toy. Fonts, colours and team hues all reuse the brand tokens already in
-   index.css — Montserrat 800 for the big numerals (already loaded, no new
-   dependency).
+   Design language: broadcast scoreboard. Three materials —
+     INK    deep blue-charcoal surfaces that carry the live energy
+            (hero board, page headers, clock modules, PTS chips)
+     PAPER  cool white sheets that slide over the ink and hold information
+     TEAM   the four campus colours used as material (wedge panels, goal
+            buttons, colour spines), never as 3px accents
+   Display face: Anton (self-hosted woff2, SIL OFL) for scores, ranks and page
+   titles. Montserrat (already loaded by index.css) for UI text, JetBrains
+   Mono for clocks and times.
    ============================================================================ */
 
-/* ---- skin-scoped token overrides: bigger radii, softer depth ------------- */
-:root[data-skin="stardial"] {
-  --radius-card: 20px;
-  --radius-control: 14px;
-  --radius-pill: 999px;
-
-  /* the single saturated surface — a deepened take on the brand blues */
-  --spot-1: #0d3a4c;
-  --spot-2: #1b6884;
-  --spot-3: #2e93b8;
-
-  --shadow-sm: 0 1px 2px rgba(20, 30, 40, 0.05), 0 1px 1px rgba(20, 30, 40, 0.04);
-  --shadow-md: 0 14px 30px -12px rgba(20, 30, 40, 0.18), 0 4px 10px -6px rgba(20, 30, 40, 0.12);
-  --shadow-live: 0 0 0 1px rgba(237, 28, 36, 0.20), 0 14px 30px -12px rgba(237, 28, 36, 0.22);
+@font-face {
+  font-family: 'Anton';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/anton-latin.woff2') format('woff2');
 }
 
-/* ---- broadcast numerals: the headline fix for the "1 / 0" wrap ----------- */
-:root[data-skin="stardial"] .sportline .score,
-:root[data-skin="stardial"] .sk-score,
-:root[data-skin="stardial"] .fx-scores .cell .s-val {
-  font-family: var(--font);
-  font-weight: 800;
-  letter-spacing: -0.01em;
+:root {
+  --sd-anton: 'Anton', 'Montserrat', 'Arial Narrow', sans-serif;
+  --sd-ink: #151a21;
+  --sd-ink-2: #1d242d;
+  --sd-ink-soft: #6a7076;
+  --sd-ink-faint: #9aa0a6;
+  --sd-paper: #eef0f3;
+  --sd-card: #ffffff;
+  --sd-line: #e3e6ea;
+  --sd-hero-a: #0b2e3c;
+  --sd-hero-b: #14536b;
+  --sd-hero-c: #1e7d9e;
+  --sd-red: #ed1c24;
+  --sd-red-onink: #ff7076;
+  --sd-lime: #96c93e;
+  --sd-orange: #f59120;
+  --sd-sky: #3bb1e5;
+  --sd-pink: #e77bb0;
+  --sd-purple: #8a63a9;
+  --sd-shadow-sm: 0 1px 2px rgba(16, 22, 29, 0.06), 0 2px 8px -2px rgba(16, 22, 29, 0.06);
+  --sd-shadow-md: 0 14px 28px -14px rgba(16, 22, 29, 0.22), 0 4px 10px -6px rgba(16, 22, 29, 0.1);
+}
+
+/* ---- shell ---------------------------------------------------------------- */
+.sd-app {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100svh;
+  background: var(--sd-paper);
+  position: relative;
+}
+.sd-scroll { min-height: 100svh; }
+
+.sd-loading {
+  min-height: 100svh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  background: linear-gradient(160deg, var(--sd-hero-a), var(--sd-hero-b) 70%);
+  color: #fff; font-size: 14px; font-weight: 700;
+}
+.sd-loading svg { opacity: 0.8; }
+
+/* ---- ink header (hero + page headers share the frame) ---------------------- */
+.sd-hero, .sd-header {
+  position: relative;
+  background:
+    radial-gradient(130% 90% at 85% -10%, rgba(62, 177, 229, 0.28), transparent 60%),
+    radial-gradient(120% 100% at 0% 110%, rgba(11, 46, 60, 0.9), transparent 70%),
+    linear-gradient(150deg, var(--sd-hero-a) 0%, var(--sd-hero-b) 58%, var(--sd-hero-c) 125%);
+  color: #fff;
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 40px;
+}
+/* the STADIO spectrum rides the very top edge of every ink surface */
+.sd-hero::before, .sd-header::before {
+  content: '';
+  position: absolute; inset: 0 0 auto 0; height: 4px;
+  background: linear-gradient(90deg,
+    #f59120 0 11.1%, #ffce00 0 22.2%, #96c93e 0 33.3%, #4ebea3 0 44.4%,
+    #3bb1e5 0 55.5%, #227d9f 0 66.6%, #8a63a9 0 77.7%, #e77bb0 0 88.8%, #ed1c24 0 100%);
+}
+
+.sd-hero-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.sd-kicker {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.66);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sd-title {
+  margin: 14px 0 0;
+  font-family: var(--sd-anton);
+  font-weight: 400;
+  font-size: 40px;
+  line-height: 0.95;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+/* ---- status vocabulary ----------------------------------------------------- */
+.sd-live {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 10px; font-weight: 900; letter-spacing: 0.12em;
+  color: #fff; background: var(--sd-red);
+  border-radius: 999px; padding: 5px 11px;
+  box-shadow: 0 3px 10px -2px rgba(237, 28, 36, 0.55);
+}
+.sd-live.compact { padding: 4px 9px; font-size: 9px; }
+.sd-live-dot { width: 6px; height: 6px; border-radius: 50%; background: #fff; animation: sd-pulse 1.3s ease-in-out infinite; }
+
+.sd-tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 9.5px; font-weight: 900; letter-spacing: 0.1em;
+  color: var(--sd-ink-soft); background: transparent;
+  border: 1.5px solid #d3d8dd; border-radius: 999px; padding: 4px 10px;
+  white-space: nowrap;
+}
+.sd-tag-final { background: #e8ebee; border-color: transparent; color: #3a3f45; }
+.sd-tag-demo { background: #fff3d6; border-color: #f0dcab; color: #8a5a12; }
+.sd-tag-onink { border-color: rgba(255, 255, 255, 0.35); color: rgba(255, 255, 255, 0.9); }
+
+/* ---- crest chips ------------------------------------------------------------ */
+.sd-crest {
+  display: inline-grid; place-items: center;
+  width: 30px; height: 30px; border-radius: 9px; flex: none;
+  background: linear-gradient(165deg, var(--tc), color-mix(in srgb, var(--tc) 70%, #0a0f14));
+  color: #fff; font-size: 10px; font-weight: 800; letter-spacing: 0.02em;
+}
+.sd-crest-sm { width: 24px; height: 24px; border-radius: 7px; font-size: 8.5px; }
+
+.sd-sportchip {
+  display: inline-grid; place-items: center;
+  width: 21px; height: 21px; border-radius: 7px; flex: none;
+}
+.sd-sportchip-soccer { background: color-mix(in srgb, var(--sd-sky) 16%, #fff); color: color-mix(in srgb, var(--sd-sky) 75%, #0a2330); }
+.sd-sportchip-netball { background: color-mix(in srgb, var(--sd-pink) 18%, #fff); color: color-mix(in srgb, var(--sd-pink) 75%, #33101f); }
+
+/* ============================================================================
+   THE BOARD — live hero scoreboard
+   ============================================================================ */
+.sd-board { margin-top: 20px; }
+.sd-board-meta { display: flex; align-items: center; justify-content: space-between; }
+.sd-board-match {
+  font-family: var(--sd-anton); font-size: 15px; letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.sd-face {
+  display: grid;
+  grid-template-columns: 1fr minmax(112px, auto) 1fr;
+  align-items: stretch;
+  margin-top: 16px;
+}
+.sd-panel {
+  min-height: 104px;
+  border-radius: 18px;
+  background: linear-gradient(168deg, var(--tc) 10%, color-mix(in srgb, var(--tc) 58%, #0a0f14) 100%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  padding: 10px 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 10px 22px -12px rgba(0, 0, 0, 0.55);
+}
+.sd-panel b {
+  font-family: var(--sd-anton); font-weight: 400;
+  font-size: 30px; line-height: 1; letter-spacing: 0.05em; color: #fff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+.sd-panel span {
+  font-size: 10px; font-weight: 700; color: rgba(255, 255, 255, 0.88);
+  text-align: center; line-height: 1.25;
+}
+/* parallel slashes — the two panels lean into the score like a broadcast wipe */
+.sd-panel-home { clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%); }
+.sd-panel-away { clip-path: polygon(14px 0, 100% 0, 100% 100%, 0 100%); }
+
+.sd-mid {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 0 10px;
+}
+.sd-score {
+  display: flex; align-items: baseline;
+  font-family: var(--sd-anton); font-weight: 400;
+  font-size: 60px; line-height: 0.9; color: #fff;
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;          /* physically cannot break onto two lines */
+  white-space: nowrap;
+  text-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+}
+.sd-score i { font-style: normal; font-size: 30px; color: rgba(255, 255, 255, 0.4); padding: 0 5px; transform: translateY(-8px); }
+.sd-vs { font-family: var(--sd-anton); font-size: 34px; color: rgba(255, 255, 255, 0.55); letter-spacing: 0.08em; }
+.sd-mid-sport {
+  margin-top: 8px;
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 9px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
 }
 
-/* ---- header: a touch more presence --------------------------------------- */
-:root[data-skin="stardial"] .appheader .bar { padding: 12px 16px; }
-:root[data-skin="stardial"] .appheader .title b { font-size: 16px; }
-:root[data-skin="stardial"] .appheader .mode.live {
-  background: #fef2f2;
-  box-shadow: inset 0 0 0 1px rgba(237, 28, 36, 0.14);
+.sd-board-sub { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+.sd-clockpill {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px; padding: 8px 14px;
+  color: #fff;
+}
+.sd-clockpill b { font-family: var(--mono, ui-monospace); font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sd-clockpill span { font-size: 9.5px; font-weight: 800; letter-spacing: 0.1em; color: rgba(255, 255, 255, 0.75); }
+.sd-clockpill.done { background: #fff; border-color: #fff; color: var(--sd-ink); font-size: 10.5px; font-weight: 900; letter-spacing: 0.12em; }
+.sd-clockpill.idle { background: transparent; border-color: rgba(255, 255, 255, 0.3); font-size: 10.5px; font-weight: 800; letter-spacing: 0.12em; color: rgba(255, 255, 255, 0.85); }
+.sd-ticker { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; color: rgba(255, 255, 255, 0.88); min-width: 0; }
+
+.sd-alt {
+  margin-top: 18px; padding-top: 13px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.sd-alt-name {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 10.5px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+}
+.sd-alt-score { display: inline-flex; align-items: baseline; font-family: var(--sd-anton); font-size: 22px; color: #fff; }
+.sd-alt-score i { font-style: normal; color: rgba(255, 255, 255, 0.4); padding: 0 3px; font-size: 15px; }
+.sd-alt-score em { font-style: normal; font-family: var(--mono, ui-monospace); font-size: 10.5px; font-weight: 700; color: var(--sd-red-onink); margin-left: 9px; }
+.sd-alt-score em.done { color: rgba(255, 255, 255, 0.6); letter-spacing: 0.08em; }
+.sd-alt-wait { font-size: 11px; font-weight: 600; color: rgba(255, 255, 255, 0.55); }
+
+.sd-board-empty {
+  margin-top: 22px; padding: 18px 0 6px;
+  display: flex; flex-direction: column; align-items: center; gap: 7px; text-align: center;
+}
+.sd-board-empty svg { opacity: 0.75; }
+.sd-board-empty b { font-size: 16px; font-weight: 800; }
+.sd-board-empty span { font-size: 12.5px; color: rgba(255, 255, 255, 0.68); max-width: 30ch; line-height: 1.5; }
+
+/* ---- the sheet -------------------------------------------------------------- */
+.sd-sheet {
+  position: relative;
+  background: var(--sd-paper);
+  border-radius: 26px 26px 0 0;
+  margin-top: -24px;
+  padding: 22px 16px 132px;
+  animation: sd-rise 0.35s ease both;
 }
 
-/* ---- content: guaranteed clearance above the fixed tab bar ---------------- */
-:root[data-skin="stardial"] .content { padding: 16px 16px 132px; }
+.sd-section { display: flex; align-items: baseline; justify-content: space-between; margin: 24px 2px 10px; }
+.sd-section:first-child { margin-top: 0; }
+.sd-section-title {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--sd-ink-soft);
+}
+.sd-section-title svg { color: var(--sd-ink-faint); }
+.sd-section-right { font-family: var(--mono, ui-monospace); font-size: 10.5px; font-weight: 600; color: var(--sd-ink-faint); }
+
+.sd-quiet {
+  background: var(--sd-card); border-radius: 16px; padding: 14px 16px;
+  font-size: 12.5px; font-weight: 600; color: var(--sd-ink-soft);
+  box-shadow: var(--sd-shadow-sm);
+}
+
+/* ---- up next rows ------------------------------------------------------------ */
+.sd-next {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--sd-card); border-radius: 16px;
+  padding: 12px 14px; margin-bottom: 8px;
+  box-shadow: var(--sd-shadow-sm);
+}
+.sd-next-time { font-family: var(--sd-anton); font-size: 17px; color: var(--sd-ink); min-width: 44px; }
+.sd-next-pair { display: flex; flex: none; }
+.sd-next-pair .sd-crest:first-child { position: relative; z-index: 1; box-shadow: 0 0 0 2px var(--sd-card); }
+.sd-next-pair .sd-crest + .sd-crest { margin-left: -8px; }
+.sd-next-names {
+  flex: 1; min-width: 0;
+  font-size: 12.5px; font-weight: 800; color: var(--sd-ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sd-next-names i { font-style: normal; font-size: 9px; font-weight: 800; letter-spacing: 0.08em; color: var(--sd-ink-faint); text-transform: uppercase; padding: 0 1px; }
+.sd-next-sports { display: flex; gap: 5px; flex: none; }
+
+/* ---- announcements ------------------------------------------------------------ */
+.sd-annlist { background: var(--sd-card); border-radius: 18px; padding: 4px 16px; box-shadow: var(--sd-shadow-sm); }
+.sd-ann { display: flex; gap: 12px; padding: 13px 0; border-top: 1px solid var(--sd-line); }
+.sd-ann:first-child { border-top: none; }
+.sd-ann-mark {
+  width: 28px; height: 28px; border-radius: 9px; flex: none;
+  display: grid; place-items: center;
+  background: color-mix(in srgb, var(--sd-sky) 14%, #fff);
+  color: color-mix(in srgb, var(--sd-sky) 70%, #0a2330);
+}
+.sd-ann p { margin: 2px 0 0; font-size: 13px; line-height: 1.55; color: #383d43; }
+
+.sd-composer { display: flex; gap: 8px; margin-bottom: 12px; }
+.sd-composer textarea {
+  flex: 1; border: 1px solid var(--sd-line); border-radius: 14px;
+  padding: 10px 12px; font-family: inherit; font-size: 13px; resize: vertical;
+  background: var(--sd-card);
+}
+.sd-composer button {
+  align-self: stretch; display: inline-flex; align-items: center; gap: 6px;
+  border: none; border-radius: 14px; padding: 0 16px;
+  background: var(--sd-ink); color: #fff; font-size: 12.5px; font-weight: 800; cursor: pointer;
+}
+.sd-composer button:disabled { opacity: 0.35; cursor: not-allowed; }
 
 /* ============================================================================
-   LIVE HERO — the one spotlight card
+   RAIL — fixtures & schedule share the day-spine
    ============================================================================ */
-:root[data-skin="stardial"] .hero {
-  background: linear-gradient(128deg, var(--spot-1) 0%, var(--spot-2) 55%, var(--spot-3) 100%);
-  border: none;
-  color: #fff;
-  box-shadow: 0 18px 34px -14px rgba(13, 58, 76, 0.5);
+.sd-rail { position: relative; }
+.sd-stop {
+  display: grid; grid-template-columns: 50px 1fr; gap: 10px;
+  position: relative; margin-bottom: 16px;
 }
-:root[data-skin="stardial"] .hero.is-live {
-  box-shadow: 0 0 0 1px rgba(237, 28, 36, 0.22), 0 18px 36px -12px rgba(13, 58, 76, 0.55);
+.sd-stop::before {
+  content: '';
+  position: absolute; left: 24px; top: 36px; bottom: -16px; width: 2px;
+  background: #d9dde2;
 }
-:root[data-skin="stardial"] .hero .hero-top {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
-  padding: 14px 16px;
-}
-:root[data-skin="stardial"] .hero .hero-top .kicker { color: rgba(255, 255, 255, 0.6); }
-:root[data-skin="stardial"] .hero .pairing { padding: 20px 16px 8px; }
-:root[data-skin="stardial"] .hero .pairing .side b { color: #fff; font-size: 14px; }
-:root[data-skin="stardial"] .hero .vs { color: rgba(255, 255, 255, 0.5); }
+.sd-stop:last-child::before { display: none; }
+.sd-stop-node { display: flex; flex-direction: column; align-items: center; gap: 7px; padding-top: 6px; }
+.sd-stop-time { font-family: var(--mono, ui-monospace); font-size: 11.5px; font-weight: 700; color: var(--sd-ink-soft); }
+.sd-stop-dot { width: 11px; height: 11px; border-radius: 50%; background: #c6ccd2; position: relative; z-index: 1; }
+.sd-stop.is-live .sd-stop-dot { background: var(--sd-red); animation: sd-ring 1.6s ease-out infinite; }
+.sd-stop.is-final .sd-stop-dot { background: var(--sd-lime); }
+.sd-stop.kind-match .sd-stop-dot { background: var(--sd-sky); }
+.sd-stop.kind-break .sd-stop-dot { background: var(--sd-orange); }
+.sd-stop.kind-ceremony .sd-stop-dot { background: var(--sd-purple); }
+.sd-stop.is-now .sd-stop-dot { background: var(--sd-red); animation: sd-ring 1.6s ease-out infinite; }
 
-/* crests keep their team colour (inline styles) — just lift them off the dark */
-:root[data-skin="stardial"] .hero .crest.lg {
-  box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.5), 0 0 0 3px rgba(255, 255, 255, 0.10);
-}
-
-/* sport lines sit on the dark card as translucent rows with a colour edge */
-:root[data-skin="stardial"] .hero .sportline {
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  border-left: 3px solid transparent;
-  padding: 14px 16px;
-}
-:root[data-skin="stardial"] .hero .sportline.soccer { border-left-color: var(--sky); }
-:root[data-skin="stardial"] .hero .sportline.netball { border-left-color: var(--pink); }
-:root[data-skin="stardial"] .hero .sportline .label { color: rgba(255, 255, 255, 0.82); }
-:root[data-skin="stardial"] .hero .sportline .score { font-size: 42px; color: #fff; }
-:root[data-skin="stardial"] .hero .sportline .score .dash { color: rgba(255, 255, 255, 0.45); }
-
-/* clock + scorer chips read as glassy pills on the dark card */
-:root[data-skin="stardial"] .hero .chip {
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.22);
-  color: #fff;
-}
-:root[data-skin="stardial"] .hero .chip.chip-clock { color: #fff; }
-:root[data-skin="stardial"] .hero .chip.chip-upcoming { color: rgba(255, 255, 255, 0.85); }
-:root[data-skin="stardial"] .hero .ev-chip {
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.20);
-  color: #fff;
-}
-
-/* ============================================================================
-   FIXTURES — quiet white cards, wrap bug fixed
-   ============================================================================ */
-:root[data-skin="stardial"] .card { box-shadow: var(--shadow-sm); }
-:root[data-skin="stardial"] .fixture.is-live {
-  box-shadow: var(--shadow-live);
-  border-color: transparent;
-}
-:root[data-skin="stardial"] .fixture .fx-pair .name { font-weight: 800; color: #2c3033; }
-
-:root[data-skin="stardial"] .fx-scores { gap: 10px; }
-:root[data-skin="stardial"] .fx-scores .cell {
-  padding: 11px 13px;
-  border-radius: 12px;
-  align-items: center;
-}
-:root[data-skin="stardial"] .fx-scores .cell .s-label {
-  font-size: 11px;
+/* ---- fixture tickets ----------------------------------------------------------- */
+.sd-ticket {
+  background: var(--sd-card); border-radius: 18px; padding: 14px;
+  box-shadow: var(--sd-shadow-sm);
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
-:root[data-skin="stardial"] .fx-scores .cell .s-val {
-  font-size: 21px;
-  flex: none;
-  padding-left: 8px;
+.sd-stop.is-live .sd-ticket {
+  box-shadow: 0 0 0 1.5px rgba(237, 28, 36, 0.32), var(--sd-shadow-md);
 }
-:root[data-skin="stardial"] .fx-scores .cell .s-clock { margin-top: 3px; }
+.sd-ticket-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.sd-ticket-round { font-size: 9.5px; font-weight: 800; letter-spacing: 0.12em; color: var(--sd-ink-faint); }
+.sd-ticket-pair { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.sd-ticket-side { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.sd-ticket-side b { font-size: 13.5px; font-weight: 800; color: var(--sd-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sd-ticket-pair > i { font-style: normal; font-size: 9px; font-weight: 800; letter-spacing: 0.08em; color: var(--sd-ink-faint); flex: none; }
+
+.sd-ticket-sports { display: flex; flex-direction: column; gap: 7px; }
+.sd-srow {
+  display: flex; align-items: center; gap: 10px;
+  background: #f2f4f6; border-radius: 12px; padding: 10px 13px;
+}
+.sd-srow-name {
+  display: inline-flex; align-items: center; gap: 7px; flex: none;
+  font-size: 10.5px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
+  color: #575d64;
+}
+.sd-srow-soccer .sd-srow-name svg { color: var(--sd-sky); }
+.sd-srow-netball .sd-srow-name svg { color: var(--sd-pink); }
+.sd-srow-clock { margin-left: auto; font-family: var(--mono, ui-monospace); font-size: 11.5px; font-weight: 700; color: var(--sd-red); }
+.sd-srow-score { margin-left: auto; display: inline-flex; align-items: baseline; font-family: var(--sd-anton); font-size: 21px; color: var(--sd-ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sd-srow-clock + .sd-srow-score { margin-left: 10px; }
+.sd-srow-score i { font-style: normal; font-size: 14px; color: #b4bac0; padding: 0 3px; }
+/* the live sport row becomes a miniature of the big board */
+.sd-srow.is-live { background: linear-gradient(150deg, var(--sd-ink), var(--sd-ink-2)); }
+.sd-srow.is-live .sd-srow-name { color: rgba(255, 255, 255, 0.85); }
+.sd-srow.is-live .sd-srow-score { color: #fff; }
+.sd-srow.is-live .sd-srow-score i { color: rgba(255, 255, 255, 0.4); }
+.sd-srow.is-live .sd-srow-clock { color: var(--sd-red-onink); }
+
+.sd-feed { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.sd-ev {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--sd-card); border: 1px solid var(--sd-line); border-radius: 999px;
+  padding: 4px 10px; font-size: 11px; font-weight: 600; color: #383d43;
+}
+.sd-ev svg { color: var(--sd-sky); }
+.sd-ev-yellow { background: #fff7db; border-color: #efe0a4; }
+.sd-ev-yellow svg { color: #d9a900; }
+.sd-ev-red { background: #fdecec; border-color: #f2bcbc; }
+.sd-ev-red svg { color: var(--sd-red); }
+.sd-ev-x {
+  display: inline-grid; place-items: center;
+  width: 18px; height: 18px; margin: -2px -4px -2px 0;
+  border: none; border-radius: 50%; background: none; padding: 0;
+  color: var(--sd-red); cursor: pointer;
+}
 
 /* ============================================================================
-   SCOREKEEPER — no instruction banner, bold controls, nothing clipped
+   SCOREKEEPER REMOTE
    ============================================================================ */
-/* the "Scorekeeper mode — tap to score live…" annotation is removed in-skin */
-:root[data-skin="stardial"] .sk-banner { display: none; }
+.sd-sk { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+.sd-sk-note { font-size: 12px; font-weight: 600; color: var(--sd-ink-faint); padding: 8px 2px 0; }
 
-:root[data-skin="stardial"] .sk-panel { gap: 20px; }
-:root[data-skin="stardial"] .sk-sport { padding: 14px; border-radius: 16px; }
-:root[data-skin="stardial"] .sk-head { font-size: 13px; margin-bottom: 12px; }
+.sd-remote {
+  background: #f2f4f6; border: 1px solid #e7eaee; border-radius: 16px; padding: 12px;
+}
+.sd-remote-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px; }
+.sd-remote-sport {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
+  color: #454b52;
+}
+.sd-remote-soccer .sd-remote-sport svg { color: var(--sd-sky); }
+.sd-remote-netball .sd-remote-sport svg { color: var(--sd-pink); }
 
-:root[data-skin="stardial"] .sk-clock { border-radius: 14px; padding: 10px 14px; }
-:root[data-skin="stardial"] .sk-clock-time { font-size: 22px; }
+.sd-kickoff {
+  width: 100%; min-height: 58px;
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  border: none; border-radius: 14px; cursor: pointer;
+  background: linear-gradient(160deg, var(--sd-lime), #7cae2c);
+  color: #1d2b07; font-size: 15px; font-weight: 900; text-transform: capitalize;
+  box-shadow: 0 8px 18px -8px rgba(124, 174, 44, 0.7);
+}
+.sd-kickoff small { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.65; }
 
-:root[data-skin="stardial"] .sk-scoreline { gap: 16px; margin: 14px 0; }
-:root[data-skin="stardial"] .sk-scoreline .sk-score { font-size: 32px; }
+.sd-clockbox {
+  display: flex; align-items: center; gap: 10px;
+  background: linear-gradient(150deg, var(--sd-ink), var(--sd-ink-2));
+  border-radius: 14px; padding: 11px 14px; color: #fff;
+}
+.sd-clockbox-ic { color: rgba(255, 255, 255, 0.55); flex: none; }
+.sd-clockbox b { font-family: var(--mono, ui-monospace); font-size: 23px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sd-clockbox-phase { flex: 1; font-size: 9px; font-weight: 800; letter-spacing: 0.14em; color: rgba(255, 255, 255, 0.55); }
+.sd-clockbtn {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 38px; padding: 0 14px; border: none; border-radius: 999px;
+  font-size: 12px; font-weight: 800; cursor: pointer; white-space: nowrap;
+}
+.sd-clockbtn.hold { background: var(--sd-orange); color: #33210a; }
+.sd-clockbtn.go { background: var(--sd-lime); color: #1d2b07; }
 
-:root[data-skin="stardial"] .sk-goal-row { gap: 10px; }
-:root[data-skin="stardial"] .sk-goal {
-  min-height: 60px;
-  border-radius: 14px;
-  font-size: 14px;
-  line-height: 1.25;
-  box-shadow: 0 8px 18px -8px rgba(0, 0, 0, 0.28);
+.sd-sk-score { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 14px 0; }
+.sd-sk-code {
+  font-size: 11px; font-weight: 900; letter-spacing: 0.04em; color: #fff;
+  background: linear-gradient(165deg, var(--tc), color-mix(in srgb, var(--tc) 70%, #0a0f14));
+  border-radius: 8px; padding: 5px 9px;
+}
+.sd-sk-digits {
+  display: inline-flex; align-items: baseline;
+  font-family: var(--sd-anton); font-size: 40px; line-height: 1; color: var(--sd-ink);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.sd-sk-digits i { font-style: normal; font-size: 22px; color: #b4bac0; padding: 0 6px; transform: translateY(-4px); }
+
+.sd-goalrow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sd-goalbtn {
+  min-height: 72px; border: none; border-radius: 16px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  background: linear-gradient(168deg, var(--tc) 10%, color-mix(in srgb, var(--tc) 58%, #0a0f14) 100%);
+  color: #fff; font-size: 17px; font-weight: 900; letter-spacing: 0.08em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 10px 20px -10px rgba(0, 0, 0, 0.45);
+}
+.sd-goalbtn small { font-size: 10px; font-weight: 700; letter-spacing: 0.02em; opacity: 0.85; }
+.sd-goalbtn-plus {
+  display: inline-grid; place-items: center;
+  width: 24px; height: 24px; margin-bottom: 3px;
+  border-radius: 50%; background: rgba(255, 255, 255, 0.22);
 }
 
-:root[data-skin="stardial"] .sk-actions { gap: 10px; margin-top: 14px; }
-:root[data-skin="stardial"] .sk-actions button { min-height: 48px; border-radius: 14px; font-size: 13px; }
-:root[data-skin="stardial"] .sk-actions .sk-publish { flex: 1.4; }
-:root[data-skin="stardial"] .sk-start { min-height: 48px; border-radius: 14px; font-size: 14px; }
+.sd-events { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
 
-/* ============================================================================
-   STANDINGS — a little more weight where it counts
-   ============================================================================ */
-:root[data-skin="stardial"] table.standings td.pts { font-size: 14px; }
-:root[data-skin="stardial"] table.standings td.team { font-weight: 800; }
-
-/* ============================================================================
-   BOTTOM TAB BAR — cleaner, lighter (icons remain a follow-up layer)
-   ============================================================================ */
-:root[data-skin="stardial"] .tabbar {
-  border-top-color: var(--line);
-  box-shadow: 0 -6px 20px rgba(20, 30, 40, 0.06);
+.sd-sk-actions { display: flex; gap: 10px; margin-top: 12px; }
+.sd-cardbtn {
+  flex: 1; min-height: 48px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  border: 1px solid var(--sd-line); border-radius: 14px; background: var(--sd-card);
+  font-size: 12.5px; font-weight: 800; color: var(--sd-ink); cursor: pointer;
 }
-:root[data-skin="stardial"] .tabbar button { font-weight: 700; }
+.sd-cardbtn svg { color: #e0a800; }
+.sd-publish {
+  flex: 1.7; min-height: 48px;
+  border: none; border-radius: 14px; cursor: pointer;
+  background: linear-gradient(150deg, var(--sd-ink), var(--sd-ink-2));
+  color: #fff; font-size: 13px; font-weight: 800;
+}
+.sd-reopen {
+  width: 100%; min-height: 44px; margin-top: 10px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  border: 1px solid var(--sd-line); border-radius: 14px; background: var(--sd-card);
+  font-size: 12.5px; font-weight: 700; color: var(--sd-ink-soft); cursor: pointer;
+}
+
+/* ---- pickers ------------------------------------------------------------------ */
+.sd-picker {
+  margin-top: 10px; padding: 12px;
+  background: var(--sd-card); border: 1px solid var(--sd-line); border-radius: 16px;
+  box-shadow: var(--sd-shadow-sm);
+}
+.sd-picker-title { font-size: 12.5px; font-weight: 700; color: var(--sd-ink); margin-bottom: 10px; }
+.sd-picker-title b {
+  background: var(--tc, var(--sd-ink)); color: #fff;
+  border-radius: 6px; padding: 2px 7px; font-size: 10.5px; font-weight: 800; margin-right: 2px;
+}
+.sd-picker-list { display: flex; flex-direction: column; gap: 6px; max-height: 236px; overflow-y: auto; }
+.sd-picker-list button {
+  min-height: 44px; padding: 0 13px; text-align: left; cursor: pointer;
+  border: 1px solid var(--sd-line); border-radius: 12px; background: #f6f7f9;
+  font-size: 13.5px; font-weight: 600; color: var(--sd-ink);
+}
+.sd-picker-unknown { color: var(--sd-ink-faint) !important; font-weight: 600 !important; }
+.sd-picker-free { display: flex; gap: 8px; }
+.sd-picker-free input {
+  flex: 1; min-height: 44px; padding: 0 12px;
+  border: 1px solid var(--sd-line); border-radius: 12px; font-size: 14px; font-family: inherit;
+}
+.sd-picker-free button {
+  min-height: 44px; padding: 0 18px; border: none; border-radius: 12px; cursor: pointer;
+  background: var(--sd-ink); color: #fff; font-weight: 800; font-size: 13px;
+}
+.sd-picker-free button:disabled { opacity: 0.35; cursor: not-allowed; }
+.sd-picker-min {
+  width: 100%; min-height: 44px; padding: 0 12px; margin-bottom: 8px;
+  border: 1px solid var(--sd-line); border-radius: 12px;
+  font-family: var(--mono, ui-monospace); font-size: 14px;
+}
+.sd-picker-cancel {
+  width: 100%; min-height: 40px; margin-top: 8px;
+  border: none; background: none; cursor: pointer;
+  font-size: 12.5px; font-weight: 700; color: var(--sd-ink-faint);
+}
+
+.sd-seg {
+  display: flex; gap: 5px;
+  background: #eef0f3; border-radius: 999px; padding: 4px; margin-bottom: 8px;
+}
+.sd-seg button {
+  flex: 1; min-height: 40px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  border: none; border-radius: 999px; background: none; cursor: pointer;
+  font-size: 13px; font-weight: 700; color: var(--sd-ink-soft);
+}
+.sd-seg button.active { background: var(--tc, var(--sd-ink)); color: #fff; }
+.sd-seg button.active.card-y { background: #ffcd00; color: #3a2b00; }
+.sd-seg button.active.card-r { background: var(--sd-red); color: #fff; }
+.sd-seg-sport { background: var(--sd-card); padding: 5px; margin-bottom: 16px; box-shadow: var(--sd-shadow-sm); }
+.sd-seg-sport button { min-height: 46px; }
 
 /* ============================================================================
-   FLOATING SKIN SWITCHER — intentionally GLOBAL (works in both skins)
+   LEADERBOARD
+   ============================================================================ */
+.sd-board-list {
+  background: var(--sd-card); border-radius: 20px; overflow: hidden;
+  box-shadow: var(--sd-shadow-sm);
+}
+.sd-lb-cols {
+  display: flex; justify-content: flex-end; align-items: center;
+  padding: 10px 14px 8px; gap: 0;
+}
+.sd-lb-cols span {
+  width: 23px; text-align: center;
+  font-size: 9px; font-weight: 800; letter-spacing: 0.04em; color: var(--sd-ink-faint);
+}
+.sd-lb-cols span.pts { width: 40px; margin-left: 7px; }
+.sd-lb-row {
+  position: relative;
+  display: flex; align-items: center;
+  padding: 12px; border-top: 1px solid var(--sd-line);
+}
+.sd-lb-row::before {
+  content: '';
+  position: absolute; left: 0; top: 9px; bottom: 9px; width: 4px;
+  border-radius: 0 4px 4px 0; background: var(--tc);
+}
+.sd-lb-rank { width: 23px; flex: none; font-family: var(--sd-anton); font-size: 18px; color: #b7bdc3; }
+.sd-lb-team { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+.sd-lb-team .sd-crest { width: 26px; height: 26px; border-radius: 8px; font-size: 9px; }
+.sd-lb-team b { font-size: 13px; font-weight: 800; color: var(--sd-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sd-lb-cup { color: #d99a06; flex: none; }
+.sd-lb-nums { display: flex; flex: none; }
+.sd-lb-nums span { width: 23px; text-align: center; font-size: 12px; font-weight: 600; color: #565c63; font-variant-numeric: tabular-nums; }
+.sd-lb-pts {
+  width: 40px; height: 31px; margin-left: 7px; flex: none;
+  display: grid; place-items: center;
+  background: linear-gradient(150deg, var(--sd-ink), var(--sd-ink-2));
+  color: #fff; border-radius: 10px; font-size: 14px; font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.sd-lb-row.is-leader { background: color-mix(in srgb, var(--tc) 8%, #fff); }
+.sd-lb-row.is-leader::before { width: 5px; }
+.sd-lb-row.is-leader .sd-lb-rank { color: var(--tc); }
+
+/* ============================================================================
+   SCHEDULE SLOTS
+   ============================================================================ */
+.sd-slot {
+  display: flex; align-items: center; gap: 11px;
+  background: var(--sd-card); border-radius: 16px; padding: 12px 14px;
+  box-shadow: var(--sd-shadow-sm); min-width: 0;
+}
+.sd-slot-ic {
+  width: 32px; height: 32px; border-radius: 10px; flex: none;
+  display: grid; place-items: center;
+  background: #eef0f3; color: var(--sd-ink-soft);
+}
+.kind-match .sd-slot-ic { background: color-mix(in srgb, var(--sd-sky) 14%, #fff); color: color-mix(in srgb, var(--sd-sky) 75%, #0a2330); }
+.kind-break .sd-slot-ic { background: color-mix(in srgb, var(--sd-orange) 16%, #fff); color: color-mix(in srgb, var(--sd-orange) 75%, #2e1a02); }
+.kind-ceremony .sd-slot-ic { background: color-mix(in srgb, var(--sd-purple) 16%, #fff); color: color-mix(in srgb, var(--sd-purple) 78%, #180f22); }
+.sd-slot-body { min-width: 0; }
+.sd-slot-body b { display: block; font-size: 13.5px; font-weight: 800; color: var(--sd-ink); }
+.sd-slot-body span { display: block; font-size: 11.5px; font-weight: 600; color: var(--sd-ink-soft); margin-top: 2px; }
+.sd-now {
+  margin-left: auto; flex: none;
+  background: var(--sd-red); color: #fff;
+  font-size: 9.5px; font-weight: 900; letter-spacing: 0.12em;
+  border-radius: 999px; padding: 5px 10px;
+  animation: sd-pulse 1.3s ease-in-out infinite;
+}
+.sd-stop.is-now .sd-slot { box-shadow: 0 0 0 1.5px rgba(237, 28, 36, 0.3), var(--sd-shadow-md); }
+
+/* ---- empty state ---------------------------------------------------------------- */
+.sd-empty {
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
+  padding: 30px 20px; text-align: center; color: var(--sd-ink-soft);
+}
+.sd-empty svg { opacity: 0.55; }
+.sd-empty b { font-size: 15px; font-weight: 800; color: var(--sd-ink); }
+.sd-empty span { font-size: 12.5px; line-height: 1.6; max-width: 36ch; }
+
+/* ============================================================================
+   TAB BAR
+   ============================================================================ */
+.sd-tabbar {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 480px; z-index: 30;
+  display: grid; grid-template-columns: repeat(var(--tabs, 4), 1fr);
+  background: rgba(255, 255, 255, 0.93);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  border-top: 1px solid var(--sd-line);
+  padding: 8px 6px calc(10px + env(safe-area-inset-bottom, 0px));
+}
+.sd-tabbar button {
+  appearance: none; border: none; background: none; cursor: pointer;
+  min-height: 52px; padding: 2px 0;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  color: #7a8087; font-family: inherit; font-size: 10px; font-weight: 700;
+}
+.sd-tab-ic {
+  width: 46px; height: 29px; border-radius: 999px;
+  display: grid; place-items: center;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+.sd-tabbar button.active { color: var(--tab-accent, var(--sd-ink)); }
+.sd-tabbar button.active .sd-tab-ic {
+  background: color-mix(in srgb, var(--tab-accent, var(--sd-ink)) 14%, #fff);
+  transform: translateY(-1px);
+}
+
+/* ---- reused classic pieces inside the Stardial shell ------------------------------ */
+:root[data-skin="stardial"] .mgr-btn-primary {
+  background: linear-gradient(150deg, var(--sd-ink), var(--sd-ink-2));
+  border-radius: 14px; font-weight: 800;
+}
+
+/* ============================================================================
+   FLOATING SKIN SWITCHER — global on purpose: the way back is always visible
    ============================================================================ */
 .skin-switcher {
   position: fixed;
   right: max(12px, env(safe-area-inset-right, 0px));
-  bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(78px + env(safe-area-inset-bottom, 0px));
   z-index: 40;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  display: inline-flex; align-items: center; gap: 8px;
   padding: 9px 15px;
-  border: 1px solid #e3e5e7;
-  border-radius: 999px;
+  border: 1px solid #e3e5e7; border-radius: 999px;
   background: rgba(255, 255, 255, 0.92);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
   box-shadow: 0 10px 24px -10px rgba(20, 30, 40, 0.28);
   color: #3f4346;
   font-family: var(--font, 'Montserrat', sans-serif);
-  font-size: 12.5px;
-  font-weight: 700;
-  cursor: pointer;
+  font-size: 12.5px; font-weight: 700; cursor: pointer;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 .skin-switcher:active { transform: scale(0.96); }
 .skin-switcher .skin-switcher-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
+  width: 9px; height: 9px; border-radius: 50%;
   background: #aeaeaf;
   transition: background-color 0.15s ease, box-shadow 0.15s ease;
 }
-.skin-switcher.is-new {
-  border-color: #cfe6a8;
-  color: #2e93b8;
-}
-.skin-switcher.is-new .skin-switcher-dot {
-  background: #96c93e;
-  box-shadow: 0 0 0 3px rgba(150, 201, 62, 0.22);
-}
+.skin-switcher.is-new { border-color: #cfe6a8; color: #14536b; }
+.skin-switcher.is-new .skin-switcher-dot { background: #96c93e; box-shadow: 0 0 0 3px rgba(150, 201, 62, 0.22); }
 .skin-switcher:focus-visible { outline: 2px solid #2e93b8; outline-offset: 2px; }
 
+/* ---- motion ------------------------------------------------------------------ */
+@keyframes sd-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+@keyframes sd-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes sd-ring {
+  0% { box-shadow: 0 0 0 0 rgba(237, 28, 36, 0.45); }
+  100% { box-shadow: 0 0 0 9px rgba(237, 28, 36, 0); }
+}
+@keyframes sd-pop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.28); filter: brightness(1.3); }
+  100% { transform: scale(1); }
+}
+.sd-pop { display: inline-block; animation: sd-pop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.4); }
+
 @media (prefers-reduced-motion: reduce) {
-  .skin-switcher { transition: none; }
+  .skin-switcher, .sd-tab-ic { transition: none; }
 }

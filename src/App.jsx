@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import { DataProvider, useData } from './store/DataProvider'
 import { RoleProvider, useRole } from './store/RoleContext'
+import { useSkin } from './skins/SkinContext'
+import StardialShell from './skins/stardial/StardialShell'
 import AppHeader from './components/AppHeader'
 import BottomTabBar from './components/BottomTabBar'
 import LiveScreen from './screens/LiveScreen'
@@ -26,12 +28,19 @@ function Shell() {
     return 'live'
   })
   const contentRef = useRef(null)
+  const { skin } = useSkin()
 
   // UX law §5.1 — every tab lands scrolled to top.
   useEffect(() => {
     contentRef.current?.scrollTo(0, 0)
     window.scrollTo(0, 0)
   }, [tab])
+
+  // Stardial skin: alternate presentation layer, same tab state, same data.
+  // Classic below stays exactly as it always was.
+  if (skin === 'stardial') {
+    return <StardialShell tab={tab} onTab={setTab} contentRef={contentRef} loading={loading} />
+  }
 
   if (loading) {
     return (
