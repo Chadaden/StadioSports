@@ -3,6 +3,21 @@
 This file is the hand-off point for future agents. Do not rebuild the app from
 an older PR or re-enable the classic skin.
 
+## Client-approved baseline — 20 July 2026
+
+- The client has approved the current production UI and functionality as the
+  canonical STADIO baseline.
+- Stardial is the product's sole primary/default UI. It is no longer a theme,
+  alternate look, experiment, or optional mode.
+- The exact approved and deployed runtime is permanently marked by Git tag
+  `stadio-approved-baseline-2026-07-20` at commit
+  `14f040057260d2f24d6f0dc4e0ca427a8507229b`.
+- Future work must start from `main` and preserve this behaviour unless the
+  client explicitly requests a change. Never restore code from a superseded
+  branch over `main`.
+- Documentation-only commits after this marker do not change the approved
+  production runtime.
+
 ## One production interface
 
 - Stardial is the only runtime interface. The classic/Stardial switch was
@@ -66,11 +81,13 @@ profiles.
 ## Git history consolidation
 
 - Tracking issue: <https://github.com/Chadaden/StadioSports/issues/4>
-- PR #5 held the live-data/flash work.
-- PR #6 held the tournament-control deployment.
-- `claude/stardial-ui-redesign-f2v3ox` held the final Stardial UI cleanup.
-- The consolidation PR supersedes all three lines and is the only branch that
-  should be merged/deployed.
+- PRs #5 and #6 were superseded during consolidation.
+- PR #7 consolidated the live-data workflow, tournament controls, manager
+  isolation, and sole Stardial interface.
+- PR #8 completed manager private-profile readiness.
+- PR #9 fixed the player-card viewport and is the approved deployed runtime.
+- Superseded remote working branches were removed after the approved tag was
+  pushed. `main` is the only continuing source branch.
 
 ## Release verification
 
