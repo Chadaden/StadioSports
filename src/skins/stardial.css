@@ -64,7 +64,6 @@
   background: linear-gradient(160deg, var(--sd-hero-a), var(--sd-hero-b) 70%);
   color: #fff; font-size: 14px; font-weight: 700;
 }
-.sd-loading svg { opacity: 0.8; }
 
 /* ---- ink header (hero + page headers share the frame) ---------------------- */
 .sd-hero, .sd-header {
@@ -132,13 +131,6 @@
   color: #fff; font-size: 10px; font-weight: 800; letter-spacing: 0.02em;
 }
 .sd-crest-sm { width: 24px; height: 24px; border-radius: 7px; font-size: 8.5px; }
-
-.sd-sportchip {
-  display: inline-grid; place-items: center;
-  width: 21px; height: 21px; border-radius: 7px; flex: none;
-}
-.sd-sportchip-soccer { background: color-mix(in srgb, var(--sd-sky) 16%, #fff); color: color-mix(in srgb, var(--sd-sky) 75%, #0a2330); }
-.sd-sportchip-netball { background: color-mix(in srgb, var(--sd-pink) 18%, #fff); color: color-mix(in srgb, var(--sd-pink) 75%, #33101f); }
 
 /* ============================================================================
    THE BOARD — live hero scoreboard
@@ -630,7 +622,7 @@
   position: relative;
   appearance: none; border: none; background: none; cursor: pointer;
   min-height: 46px; padding: 8px 0 4px;
-  display: flex; align-items: center; justify-content: center;
+  display: flex; align-items: center; justify-content: flex-start; text-align: left; padding-left: 12px;
   color: #8b9097; font-family: inherit; font-size: 12.5px; font-weight: 700; letter-spacing: 0.01em;
   transition: color 0.15s ease;
 }
@@ -647,37 +639,18 @@
 /* ---- reused classic pieces inside the Stardial shell ------------------------------ */
 :root[data-skin="stardial"] .mgr-btn-primary {
   background: linear-gradient(150deg, var(--sd-ink), var(--sd-ink-2));
-  border-radius: 14px; font-weight: 800;
+  border-radius: 14px; font-weight: 800; text-align: left; padding: 0 16px;
 }
 
-/* ============================================================================
-   FLOATING SKIN SWITCHER — global on purpose: the way back is always visible
-   ============================================================================ */
-.skin-switcher {
-  position: fixed;
-  right: max(12px, env(safe-area-inset-right, 0px));
-  bottom: calc(78px + env(safe-area-inset-bottom, 0px));
-  z-index: 40;
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 9px 15px;
-  border: 1px solid #e3e5e7; border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
-  box-shadow: 0 10px 24px -10px rgba(20, 30, 40, 0.28);
-  color: #3f4346;
-  font-family: var(--font, 'Montserrat', sans-serif);
-  font-size: 12.5px; font-weight: 700; cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
-}
-.skin-switcher:active { transform: scale(0.96); }
-.skin-switcher .skin-switcher-dot {
-  width: 9px; height: 9px; border-radius: 50%;
-  background: #aeaeaf;
-  transition: background-color 0.15s ease, box-shadow 0.15s ease;
-}
-.skin-switcher.is-new { border-color: #cfe6a8; color: #14536b; }
-.skin-switcher.is-new .skin-switcher-dot { background: #96c93e; box-shadow: 0 0 0 3px rgba(150, 201, 62, 0.22); }
-.skin-switcher:focus-visible { outline: 2px solid #2e93b8; outline-offset: 2px; }
+/* Shared manager/report components inherit the Stardial sheet but keep their
+   older class names. Normalize them here so all readable content aligns left. */
+:root[data-skin="stardial"] .sd-sheet-page,
+:root[data-skin="stardial"] .empty,
+:root[data-skin="stardial"] .card,
+:root[data-skin="stardial"] .mgr-section,
+:root[data-skin="stardial"] .pc-card,
+:root[data-skin="stardial"] .modal,
+:root[data-skin="stardial"] .squad-open { text-align: left; }
 
 /* ---- motion ------------------------------------------------------------------ */
 @keyframes sd-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
@@ -694,5 +667,5 @@
 .sd-pop { display: inline-block; animation: sd-pop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.4); }
 
 @media (prefers-reduced-motion: reduce) {
-  .skin-switcher, .sd-tabbar button, .sd-tabbar button::before { transition: none; }
+  .sd-tabbar button, .sd-tabbar button::before { transition: none; }
 }

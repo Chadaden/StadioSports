@@ -36,9 +36,10 @@ export function DataProvider({ children }) {
   const [loading, setLoading] = useState(isFirebaseConfigured)
 
   // Manager-only private profiles (emergency contact / medical / dietary, §9).
-  // Live: one listener on the manager's own team's `private` subcollection —
-  // security rules deny it to everyone else, and no public screen ever loads
-  // it. Demo: lazy-load the GIT-IGNORED local module (separate chunk, manager
+  // Live: one listener on the manager's own team's `private` subcollection.
+  // No public screen loads it; during the approved link-gated test this is UI
+  // isolation only because Firestore does not yet have authenticated roles.
+  // Demo: lazy-load the GIT-IGNORED local module (separate chunk, manager
   // role only) — the glob resolves to nothing when the file is absent, so a
   // fresh clone still builds and managers see "No private details on file".
   const [profiles, setProfiles] = useState({})
@@ -70,6 +71,11 @@ export function DataProvider({ children }) {
     const next = {
       event: null, teams: [], players: {}, fixtures: [], travel: {}, announcements: [],
     }
+    const ready = {
+      event: false, teams: false, fixtures: false, travel: false, announcements: false,
+    }
+    const expectedPlayerTeams = new Set()
+    const loadedPlayerTeams = new Set()
     let started = false
     const commit = () => {
       if (!started) return
@@ -80,20 +86,32 @@ export function DataProvider({ children }) {
         travel: next.travel,
         announcements: next.announcements,
       })
-      setLoading(false)
+      const coreReady = Object.values(ready).every(Boolean)
+      const rostersReady = [...expectedPlayerTeams].every((id) => loadedPlayerTeams.has(id))
+      setLoading(!(coreReady && rostersReady))
     }
 
     const unsubs = []
-    unsubs.push(onSnapshot(base, (d) => { next.event = { id: d.id, ...d.data() }; commit() }))
+    unsubs.push(onSnapshot(base, (d) => {
+      next.event = { id: d.id, ...d.data() }
+      ready.event = true
+      commit()
+    }))
 
     unsubs.push(onSnapshot(query(collection(base, 'teams')), (qs) => {
       next.teams = qs.docs.map((d) => ({ id: d.id, ...d.data() }))
-      // subscribe to each team's players lazily on first sight
+      ready.teams = true
+      // Managers receive only their own roster. Team metadata stays available
+      // for fixtures, standings and travel, but other campuses' player names
+      // and attendance details never enter a manager session.
       next.teams.forEach((t) => {
+        if (role === 'manager' && t.id !== myTeamId) return
+        expectedPlayerTeams.add(t.id)
         if (next.players[t.id] !== undefined) return
         next.players[t.id] = []
         unsubs.push(onSnapshot(query(collection(base, 'teams', t.id, 'players')), (ps) => {
           next.players[t.id] = ps.docs.map((d) => ({ id: d.id, ...d.data() }))
+          loadedPlayerTeams.add(t.id)
           commit()
         }))
       })
@@ -103,31 +121,34 @@ export function DataProvider({ children }) {
     unsubs.push(onSnapshot(query(collection(base, 'fixtures')), (qs) => {
       next.fixtures = qs.docs.map((d) => ({ id: d.id, ...d.data() }))
         .sort((a, b) => (a.matchNo || 0) - (b.matchNo || 0))
+      ready.fixtures = true
       commit()
     }))
 
     unsubs.push(onSnapshot(query(collection(base, 'travel')), (qs) => {
       next.travel = Object.fromEntries(qs.docs.map((d) => [d.id, d.data()]))
+      ready.travel = true
       commit()
     }))
 
     unsubs.push(onSnapshot(query(collection(base, 'announcements')), (qs) => {
       next.announcements = qs.docs.map((d) => ({ id: d.id, ...d.data() }))
         .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+      ready.announcements = true
       commit()
     }))
 
     started = true
     commit()
     return () => unsubs.forEach((u) => u())
-  }, [])
+  }, [role, myTeamId])
 
   // -------------------------------------------------------------------------
   // Write actions (Phase 2 Scorekeeper, §8). Each works in both modes:
   //   live  → write to Firestore; the onSnapshot listeners reflect it back
   //   demo  → mutate the local snapshot so the experience is fully testable.
-  // Security rules (§3) enforce who may call these in live mode; the link
-  // gates it in demo mode (§7 MVP shortcut).
+  // During this approved test, role links gate the visible controls; real
+  // database-level role enforcement still requires Firebase Auth.
   // -------------------------------------------------------------------------
   const actions = useMemo(() => {
     const fixtureRef = (id) => doc(db, 'events', EVENT_ID, 'fixtures', id)

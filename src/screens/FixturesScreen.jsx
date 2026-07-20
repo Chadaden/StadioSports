@@ -2,7 +2,6 @@ import { useMemo } from 'react'
 import { useData, useTeamMap } from '../store/DataProvider'
 import { useIsScorekeeper } from '../store/RoleContext'
 import { Crest, StatusChip, SectionLabel } from '../components/ui'
-import { SPORT_GLYPH } from '../lib/constants'
 import { formatClock, useClockTick } from '../lib/clock'
 import { projectBracket } from '../lib/standings'
 import ScorekeeperControls from './ScorekeeperControls'
@@ -31,7 +30,7 @@ export default function FixturesScreen() {
         <>
           <MancoReportButton />
           <div className="card tight sk-banner">
-            🎛️ Scorekeeper mode — tap to score live. Changes appear instantly for everyone.
+            Scorekeeper mode — tap to score live. Changes appear instantly for everyone.
           </div>
         </>
       )}
@@ -84,7 +83,7 @@ function FixtureCard({ fixture, teams, showControls, bracket }) {
           const show = s?.status === 'live' || s?.status === 'final'
           return (
             <div className={`cell ${sport}`} key={sport}>
-              <span className="s-label">{SPORT_GLYPH[sport]} {sport === 'soccer' ? 'Soccer' : 'Netball'}</span>
+              <span className="s-label">{sport === 'soccer' ? 'Soccer' : 'Netball'}</span>
               <span className="s-val">{show ? `${s.home}–${s.away}` : '—'}</span>
               {s?.status === 'live' && s.clock && (
                 <span className="s-clock">⏱ {formatClock(s.clock, now)}</span>
@@ -102,7 +101,7 @@ function FixtureCard({ fixture, teams, showControls, bracket }) {
           <div className="scorer-feed" key={sport}>
             {[...scorers].reverse().map((sc, i) => (
               <span className="ev-chip" key={i}>
-                {SPORT_GLYPH[sport]} {sc.minute ? `${sc.minute}' ` : ''}{sc.name || 'Goal'}
+                {sport === 'soccer' ? 'Soccer' : 'Netball'}: {sc.minute ? `${sc.minute}' ` : ''}{sc.name || 'Goal'}
               </span>
             ))}
           </div>
@@ -122,7 +121,7 @@ function BracketPairing({ sport, projection }) {
   return (
     <div className="fx-pair-bracket">
       <div className="fx-pair-bracket-head">
-        <span className="s-label">{SPORT_GLYPH[sport]} {sport === 'soccer' ? 'Soccer' : 'Netball'}</span>
+        <span className="s-label">{sport === 'soccer' ? 'Soccer' : 'Netball'}</span>
         {projection && <span className="chip">As it stands</span>}
       </div>
       <div className="fx-pair">

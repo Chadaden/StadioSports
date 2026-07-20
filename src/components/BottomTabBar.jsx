@@ -8,12 +8,12 @@ import { useRole } from '../store/RoleContext'
 // Each tab carries its own accent colour (STADIO spectrum) so the active
 // state reads instantly instead of everything defaulting to the same blue.
 const ALL_TABS = [
-  { id: 'live', label: 'Live', glyph: '📡', accent: 'var(--red)', hideForManager: true },
-  { id: 'team', label: 'Team', glyph: '👥', accent: 'var(--red)', managerOnly: true },
-  { id: 'fixtures', label: 'Fixtures', glyph: '🗒️', accent: 'var(--sky)' },
-  { id: 'table', label: 'Table', glyph: '🏆', accent: 'var(--orange)' },
-  { id: 'travel', label: 'Travel', glyph: '🚌', accent: 'var(--teal)', managerOnly: true },
-  { id: 'schedule', label: 'Schedule', glyph: '🕒', accent: 'var(--purple)' },
+  { id: 'live', label: 'Live', accent: 'var(--red)', hideForManager: true },
+  { id: 'team', label: 'Team', accent: 'var(--red)', managerOnly: true },
+  { id: 'fixtures', label: 'Fixtures', accent: 'var(--sky)' },
+  { id: 'table', label: 'Table', accent: 'var(--orange)' },
+  { id: 'travel', label: 'Travel', accent: 'var(--teal)', managerOnly: true },
+  { id: 'schedule', label: 'Schedule', accent: 'var(--purple)' },
 ]
 
 export default function BottomTabBar({ active, onChange }) {
@@ -35,7 +35,6 @@ export default function BottomTabBar({ active, onChange }) {
           style={{ '--tab-accent': t.accent }}
           onClick={() => onChange(t.id)}
         >
-          <span className="glyph" aria-hidden="true">{t.glyph}</span>
           {t.label}
         </button>
       ))}

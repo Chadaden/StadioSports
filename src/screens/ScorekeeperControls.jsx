@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useData, useTeamMap } from '../store/DataProvider'
-import { SPORT_GLYPH } from '../lib/constants'
 import {
   PHASE_LABELS, clockMinute, formatClock, isClockRunning, useFirstHalfAlert, useSecondTick,
 } from '../lib/clock'
@@ -42,7 +41,7 @@ function SportControls({ fixture, sport }) {
   if (s.status === 'upcoming') {
     return (
       <div className={`sk-sport sk-sport-${sport}`}>
-        <div className="sk-head"><span>{SPORT_GLYPH[sport]} {cap(sport)}</span><span className="chip chip-upcoming">Upcoming</span></div>
+        <div className="sk-head"><span>{cap(sport)}</span><span className="chip chip-upcoming">Upcoming</span></div>
         <button className="sk-start" onClick={() => actions.startSport(fixture.id, sport)}>
           Start {sport} match — timer stays stopped
         </button>
@@ -58,7 +57,7 @@ function SportControls({ fixture, sport }) {
   return (
     <div className={`sk-sport sk-sport-${sport}`}>
       <div className="sk-head">
-        <span>{SPORT_GLYPH[sport]} {cap(sport)}</span>
+        <span>{cap(sport)}</span>
         {locked
           ? <span className="chip chip-final">Full-time</span>
           : <span className="badge-live"><span className="pulse" />Live</span>}
@@ -109,7 +108,7 @@ function SportControls({ fixture, sport }) {
                   onClick={() => sport === 'netball'
                     ? actions.adjustScore(fixture.id, sport, side, 1)
                     : openGoalPicker(side)}>
-                  + {SPORT_GLYPH[sport]} {team?.code} goal
+                  Add {team?.code} goal
                 </button>
                 {sport === 'netball' && (
                   <button className="sk-goal-remove" disabled={!s[side]}
@@ -135,12 +134,12 @@ function SportControls({ fixture, sport }) {
         <div className="sk-events">
           {s.scorers.map((sc, i) => (
             <span className="ev-chip" key={`s${i}`}>
-              {SPORT_GLYPH[sport]} {sc.minute ? `${sc.minute}' ` : ''}{sc.name || 'Goal'}
+              {cap(sport)}: {sc.minute ? `${sc.minute}' ` : ''}{sc.name || 'Goal'}
               {!locked && (
                 <button
                   className="ev-x" aria-label="Remove goal"
                   onClick={() => actions.removeGoal(fixture.id, sport, i)}
-                >✕</button>
+                >Remove</button>
               )}
             </span>
           ))}
@@ -148,7 +147,7 @@ function SportControls({ fixture, sport }) {
             const remaining = sinBinRemainingSeconds(c, now)
             return (
               <span className={`ev-chip ev-card-${c.type}`} key={`c${i}`}>
-                {c.type === 'red' ? '🟥' : '🟨'} {c.minute ? `${c.minute}' ` : ''}{c.name || 'Player'}
+                {c.type === 'red' ? 'Red' : 'Yellow'} card: {c.minute ? `${c.minute}' ` : ''}{c.name || 'Player'}
                 <b className="ev-countdown">{remaining ? formatDurationSeconds(remaining) : 'served'}</b>
               </span>
             )
@@ -193,7 +192,7 @@ function GoalPicker({ fixture, sport, side, minute, team, onDone }) {
   return (
     <div className="picker">
       <div className="picker-title">
-        {SPORT_GLYPH[sport]} Goal — {team?.code}{minute ? ` · ${minute}'` : ''} · who scored?
+        {cap(sport)} goal — {team?.code}{minute ? ` · ${minute}'` : ''} · who scored?
       </div>
       {roster.length > 0 ? (
         <div className="picker-list">
@@ -243,8 +242,8 @@ function CardPicker({ fixture, sport, home, away, onDone }) {
       </div>
 
       <div className="segmented" style={{ marginBottom: 10 }}>
-        <button className={cardType === 'yellow' ? 'active' : ''} onClick={() => setCardType('yellow')}>🟨 Yellow</button>
-        <button className={cardType === 'red' ? 'active' : ''} onClick={() => setCardType('red')}>🟥 Red</button>
+        <button className={cardType === 'yellow' ? 'active' : ''} onClick={() => setCardType('yellow')}>Yellow</button>
+        <button className={cardType === 'red' ? 'active' : ''} onClick={() => setCardType('red')}>Red</button>
       </div>
 
       <input className="picker-min" type="number" inputMode="numeric" placeholder="Min (optional)"

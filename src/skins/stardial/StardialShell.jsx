@@ -1,8 +1,6 @@
-// Stardial shell — the alternate presentation layer. Mounted by App.jsx's
-// Shell when the Stardial skin is active; classic Shell renders otherwise and
-// is never modified. Tab state, role rules and data flow are shared with
-// classic (ALL_TABS is imported from the classic tab bar so the two skins can
-// never disagree about who sees which tab).
+// Stardial shell — the single production presentation layer. App.jsx always
+// mounts it so saved browser preferences cannot restore the retired classic UI.
+// Tab state, role rules and live data flow remain shared application concerns.
 //
 // Live / Fixtures / Table / Schedule are fully rebuilt Stardial screens.
 // Team & Travel (manager-only) reuse the classic screens inside this shell —

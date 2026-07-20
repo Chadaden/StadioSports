@@ -7,7 +7,11 @@ MANCO report. Four campuses — Centurion (host), Waterfall, Musgrave, Durbanvil
 
 Built to the project's `BUILD SPEC`. Section references below (§) point at it.
 
-## Current status — Phases 0 + 1 complete
+> **Canonical hand-off:** read [`CURRENT_STATE.md`](CURRENT_STATE.md) before
+> changing or deploying the app. It records the consolidated UI, live-data
+> mode, manager isolation, temporary security compromise and safe flash flow.
+
+## Current status
 
 | Phase | Scope | Status |
 |------|-------|--------|
@@ -16,11 +20,11 @@ Built to the project's `BUILD SPEC`. Section references below (§) point at it.
 | **2** | **Scorekeeper**: live score steppers, scorers, cards, publish/reopen, announcements | ✅ Done |
 | **3** | **Team Manager**: Team tab (own roster as player cards) · per-player attendance toggle, "mark all present", milestone-advance | ✅ Done |
 | **4** | **MANCO report**: one-tap assembly from Firestore + PDF export | ✅ Done |
-| 5 | Offline persistence polish, QR + 3 role links, deploy | ⏳ Next |
+| **5** | Live Firestore, role links, QR and deploy workflow | ✅ Done |
 
 ## Demo mode vs live mode
 
-The app runs with **no backend by default**. The data layer
+The app uses **live Firestore in the deployed build**. The data layer
 (`src/store/DataProvider.jsx`) serves the bundled seed snapshot
 (`src/data/seed.js`) so the Viewer is fully testable immediately.
 
@@ -33,12 +37,9 @@ npm install
 npm run dev        # demo mode — open the printed URL
 ```
 
-### Going live (full deploy)
-1. Create a Firebase project (Firestore + Auth + Hosting).
-2. `cp .env.example .env.local` — fill in the `VITE_FIREBASE_*` config values.
-3. Update `.firebaserc` with your Firebase project ID.
-4. `node scripts/seed-firestore.mjs` to seed the event and Durbanville roster.
-5. `npm run build` then `firebase deploy` — deploys hosting + Firestore rules.
+The existing Firebase project is `stadio-sports-day-2026`; reuse its checked-in
+configuration and the local git-ignored `.env.local`. Do not create or reseed a
+replacement project. See `DEPLOY.md` for the exact preflight and deploy command.
 
 ## Three roles, three links (§3)
 
@@ -50,17 +51,16 @@ Resolved in `src/lib/roles.js`:
 | **Team Manager** | `/?role=manager&team=…` | Mark own squad present · advance own travel milestone |
 | **Scorekeeper** | `/?role=scorekeeper` | Edit scores/scorers/cards · post announcements · generate report |
 
-Write scopes are isolated in `firestore.rules` — a manager can never edit
-scores; the Viewer never needs login.
+The UI scopes managers to their own team, but the current link-gated test has no
+Firebase Auth. Database rules are temporarily open so live testing works; see
+the critical warning in `CURRENT_STATE.md`.
 
 ## Data & POPIA (§9)
 
-Seed data is derived from `Stadio_Sports_day_data.xlsx`. **Only Durbanville has a
-real roster (21 people)**; the other three campuses scaffold a clean "Roster
-pending" state until their players arrive. Players store **names, sport and role
-only** — all PII (ID numbers, cells, emails, DOB, medical, emergency contacts)
-is dropped at ingest. Any future PII would live in a restricted `/private`
-subcollection, organiser-read only.
+Public player fields and private medical/emergency/dietary profiles are stored
+separately in Firestore. The manager UI loads private profiles only for its own
+campus, but the temporary test rules do not enforce that separation against
+direct database access.
 
 ## Stack
 
@@ -80,8 +80,7 @@ firestore.rules         security rules (§7)
 scripts/seed-firestore.mjs   re-runnable Firestore seeder
 ```
 
-## Outstanding from the client (§11)
+## Outstanding inputs
 
-Event date · stream URL(s) · points & tie-breaker confirmation · jersey colour
-sign-off · jersey numbers · remaining three rosters · overall "Champion Campus"
-question. None block the Viewer.
+Use a live-data audit before requesting missing shirt numbers or profiles; do
+not rely on this older README for roster completeness.

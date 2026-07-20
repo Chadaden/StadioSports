@@ -17,7 +17,6 @@ export default function TeamScreen() {
   if (!team) {
     return (
       <EmptyState
-        glyph="🚫"
         title="No team assigned"
         sub="This manager link isn't tied to a campus — check the ?team= link you were sent."
       />
@@ -35,7 +34,6 @@ function TeamRoster({ team }) {
   if (!team.rosterLoaded || players.length === 0) {
     return (
       <EmptyState
-        glyph="📋"
         title="Roster pending"
         sub={`${team.name}'s squad will appear here once the campus submits its players.`}
       />
@@ -61,8 +59,8 @@ function TeamRoster({ team }) {
         Tap a player for contact, emergency, medical & dietary details.
       </div>
 
-      <SportGroup title="⚽ Soccer" players={bySport.soccer} onOpen={setOpenPlayerId} />
-      <SportGroup title="🏐 Netball" players={bySport.netball} onOpen={setOpenPlayerId} />
+      <SportGroup title="Soccer" players={bySport.soccer} onOpen={setOpenPlayerId} />
+      <SportGroup title="Netball" players={bySport.netball} onOpen={setOpenPlayerId} />
       <SportGroup title="Team staff" players={bySport.other} onOpen={setOpenPlayerId} />
 
       {openPlayer && (
@@ -91,7 +89,6 @@ function SportGroup({ title, players, onOpen }) {
                 {p.isGK && <span className="tag-role tag-gk">GK</span>}
                 {p.role === 'support' && <span className="tag-role">Support</span>}
                 {p.role === 'hoc' && <span className="tag-role">HOC</span>}
-                {onOpen && <span className="muted">›</span>}
               </span>
             </>
           )

@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "backfill:shirt-numbers": "node scripts/backfill-shirt-numbers.mjs",
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "eslint src test scripts",
-    "preview": "vite preview",
+    "flash:test-data:dry-run": "node scripts/flash-test-data.mjs",
+    "dev": "node node_modules/vite/bin/vite.js",
+    "build": "node node_modules/vite/bin/vite.js build",
+    "lint": "node node_modules/eslint/bin/eslint.js src test scripts",
+    "preview": "node node_modules/vite/bin/vite.js preview",
     "test": "node --test test/*.test.js"
   },
   "dependencies": {

@@ -6,7 +6,7 @@ Live URL: https://stadio-sports-day-2026.web.app
 ## What to deploy
 
 1. **Hosting** — the built React app (`dist/`)
-2. **Firestore rules** — `firestore.rules` (tightens the current open rules)
+2. **Firestore rules** — `firestore.rules` (temporary live-test rules; see warning below)
 
 ## Prerequisites
 
@@ -40,12 +40,11 @@ npm install
 # Build the app (requires .env.local with VITE_FIREBASE_* vars)
 npm run build
 
-# Deploy hosting + Firestore rules in one shot
-firebase deploy
+# Deploy Hosting only
+npx firebase-tools deploy --only hosting --project stadio-sports-day-2026 --non-interactive
 
-# Or separately:
-firebase deploy --only hosting       # just the app
-firebase deploy --only firestore:rules  # just security rules (no build needed)
+# Deploy the separately approved temporary test rules only when requested
+npx firebase-tools deploy --only firestore:rules --project stadio-sports-day-2026 --non-interactive
 ```
 
 ## First-time data seed
@@ -96,23 +95,8 @@ Spectators scan it with their phone camera — no app, no login.
 
 ## What the Firestore rules deploy does
 
-The current live rules are `allow write: if true` (open). Deploying
-`firestore.rules` from this branch closes that to:
-- Public read: everyone — EXCEPT `teams/{teamId}/private/*` (emergency
-  contacts, medical, dietary), which only the owning team's manager or the
-  organiser can read
-- Write fixtures/announcements/reports: scorekeeper claim only
-- Write travel + attendance: team manager claim for own team only
-
-This should be deployed at the earliest opportunity — ideally BEFORE
-running the seed script, since the seed now writes the private player
-profiles and the open rules would leave them publicly readable.
-
-NOTE: the tightened rules key off Firebase Auth custom claims, which the
-link-gated MVP does not issue yet. Until auth ships, live Firestore must
-keep the open rules for the app to function (the client test accepted
-this §7 shortcut) — which means seeded private profiles are only
-link-gated, not access-controlled. If that trade-off isn't acceptable for
-the test day, skip seeding profiles (comment out the `private` block in
-`scripts/seed-firestore.mjs`) and managers fall back to "No private
-details on file".
+The current rules intentionally keep the client-approved live test working
+without Firebase Auth. They allow direct public access to live event data and
+private player profiles. Manager isolation exists in the UI/data subscriptions,
+not at the database boundary. This is a critical temporary compromise; do not
+describe these rules as tightened or production-secure.
