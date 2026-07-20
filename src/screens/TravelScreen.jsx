@@ -1,4 +1,5 @@
 import { useData } from '../store/DataProvider'
+import { useRole } from '../store/RoleContext'
 import { Crest } from '../components/ui'
 import { MILESTONES, MILESTONE_LABELS } from '../data/seed'
 import ManagerControls from './ManagerControls'
@@ -8,9 +9,11 @@ import ManagerControls from './ManagerControls'
 // The owning Team Manager sees the attendance register + milestone-advance (§3).
 export default function TravelScreen() {
   const { travel = {}, teams = [] } = useData()
+  const { role, teamId } = useRole()
 
-  // Travelling teams first, then locals.
-  const ordered = [...teams].sort((a, b) => {
+  // Managers see only their own campus; viewers retain the full control tower.
+  const visibleTeams = role === 'manager' ? teams.filter((team) => team.id === teamId) : teams
+  const ordered = [...visibleTeams].sort((a, b) => {
     const at = a.type === 'travel' ? 0 : 1
     const bt = b.type === 'travel' ? 0 : 1
     return at - bt
@@ -64,13 +67,13 @@ function TravelCard({ team, state }) {
           </div>
           {team.travel && (
             <div className="muted" style={{ fontSize: 12, marginTop: 8 }}>
-              {team.travel.fromAirport} → {team.travel.viaAirport} · {state?.travellers ?? '—'} travelling
+              {team.travel.fromAirport} to {team.travel.viaAirport} · {state?.travellers ?? '—'} travelling
             </div>
           )}
         </>
       ) : (
         <div className="local-present">
-          🏠 {team.type === 'host' ? 'Host campus' : 'Local campus'} · squad on site
+          {team.type === 'host' ? 'Host campus' : 'Local campus'} · squad on site
         </div>
       )}
 

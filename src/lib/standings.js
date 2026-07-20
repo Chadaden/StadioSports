@@ -48,23 +48,49 @@ export function computeStandings(sport, fixtures, teams, event) {
   for (const id in rows) rows[id].diff = rows[id].for - rows[id].against
 
   const headToHead = buildHeadToHead(sport, fixtures)
-  const order = event?.tieBreakers || ['points', 'scoreDiff', 'headToHead']
+  // Client-confirmed ranking (16 Jul): points, goal difference, goals scored,
+  // head-to-head result, fewest goals conceded.
+  const order = event?.tieBreakers
+    || ['points', 'scoreDiff', 'goalsFor', 'headToHead', 'goalsAgainst']
 
   const list = Object.values(rows).sort((x, y) => {
     for (const key of order) {
       if (key === 'points' && y.points !== x.points) return y.points - x.points
       if (key === 'scoreDiff' && y.diff !== x.diff) return y.diff - x.diff
+      if (key === 'goalsFor' && y.for !== x.for) return y.for - x.for
       if (key === 'headToHead') {
         const hh = (headToHead[y.team.id]?.[x.team.id] ?? 0) - (headToHead[x.team.id]?.[y.team.id] ?? 0)
         if (hh !== 0) return hh
       }
+      // Fewest conceded wins, so lower `against` sorts first (ascending).
+      if (key === 'goalsAgainst' && x.against !== y.against) return x.against - y.against
     }
-    // Final fallback: goals/goals-for then alphabetical for a stable order.
-    if (y.for !== x.for) return y.for - x.for
+    // Every tie-break exhausted — alphabetical for a fully stable order.
     return x.team.name.localeCompare(y.team.name)
   })
 
   return list.map((r, i) => ({ ...r, rank: i + 1 }))
+}
+
+/**
+ * Project the knockout bracket (3rd/4th playoff + final) from the current
+ * standings for one sport. Returns null until at least one round-robin
+ * result for that sport is in, since before then there's no meaningful
+ * standing to project from yet.
+ * @param {string} sport - 'soccer' | 'netball'
+ * @returns {{ final: Array, playoff: Array } | null}
+ */
+export function projectBracket(sport, fixtures, teams, event) {
+  const anyPlayed = fixtures.some(
+    (fx) => fx.round === 'roundRobin' && fx[sport]?.status === 'final',
+  )
+  if (!anyPlayed) return null
+
+  const table = computeStandings(sport, fixtures, teams, event)
+  return {
+    final: [table[0]?.team, table[1]?.team],
+    playoff: [table[2]?.team, table[3]?.team],
+  }
 }
 
 // headToHead[winner][loser] = number of wins between that pair (round-robin only).

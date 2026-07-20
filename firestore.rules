@@ -3,16 +3,29 @@ rules_version = '2';
 // STADIO National Sports Day — Firestore security rules (build spec §7).
 //
 // Roles via Firebase Auth custom claims: { role: "scorekeeper"|"manager", teamId?: "durbanville" }
-// Viewer is public read with no auth. Write scopes are FULLY ISOLATED:
-// a manager can never edit scores, a scorekeeper can never touch travel (§3).
+// was the original target model — see role()/claimTeam()/isScorekeeper()/
+// isManagerOf() below. NOTE (client-confirmed 16 Jul): the app never got a
+// sign-in flow — scorekeeper and manager are only identified by ?role=&team=
+// in the URL — so request.auth is always null in practice, and the checks
+// below could never pass. Rather than block go-live on building real Auth +
+// custom claims, the client chose to open up every read/write that depended
+// on them, matching the Viewer's existing public-read model.
 //
-// NOTE: this is the clean custom-claims target. The MVP passcode alternative
-// (§7 callout) would gate writes in a Cloud Function instead; either is
-// acceptable for the client test build, but the Viewer must never need login.
+// Concretely, as of this change: anyone with this deployed project's Firebase
+// config (which ships in the public JS bundle — not a secret) can read or
+// write any collection below directly via the SDK, bypassing the app UI and
+// its role routing entirely — including private player PII (medical,
+// emergency contact, dietary) and the official live score. There is no
+// database-level role separation left; "manager" vs "scorekeeper" is purely
+// a client-side UI convention now. role()/isScorekeeper()/isManagerOf() are
+// left defined, unused, as the target shape to restore if real Auth is ever
+// built.
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Unused while there's no sign-in flow (see header) — kept as the
+    // target shape for a future real-Auth pass.
     function role()      { return request.auth.token.role; }
     function claimTeam() { return request.auth.token.teamId; }
     function isScorekeeper() { return request.auth != null && role() == 'scorekeeper'; }
@@ -21,54 +34,54 @@ service cloud.firestore {
     }
 
     match /events/{eventId} {
-      // Public, read-only event config.
+      // Public read/write — was scorekeeper-only, see header.
       allow read: if true;
-      allow write: if isScorekeeper();
+      allow write: if true;
 
-      // Teams + non-PII players: public read.
+      // Teams + non-PII players: public read/write.
       match /teams/{teamId} {
         allow read: if true;
-        allow write: if isScorekeeper();
+        allow write: if true; // was scorekeeper-only — see header
 
         match /players/{playerId} {
           allow read: if true;
-          // Managers may flip only their own players' attendance (present).
-          allow update: if isManagerOf(teamId)
-                        && request.resource.data.diff(resource.data).affectedKeys()
+          // Any client may still only flip `present` on a player doc via
+          // update — was also restricted to that team's manager, see header.
+          allow update: if request.resource.data.diff(resource.data).affectedKeys()
                              .hasOnly(['present']);
-          allow create, delete: if isScorekeeper();
+          allow create, delete: if true; // was scorekeeper-only — see header
         }
 
         // Restricted PII (emergency contacts, medical, dietary) — one doc per
-        // player, readable ONLY by the owning team's manager or the organiser.
-        // Never publicly readable (§9). Team-level so the manager app needs a
-        // single collection listener.
+        // player. Intended to be readable ONLY by the owning team's manager
+        // or the organiser (§9), but opened to public read — see header.
+        // Team-level so the manager app needs a single collection listener.
         match /private/{playerId} {
-          allow read: if isScorekeeper() || isManagerOf(teamId);
-          allow write: if isScorekeeper();
+          allow read: if true;
+          allow write: if true; // was scorekeeper-only — see header
         }
       }
 
-      // Live scores, scorers, cards — scorekeeper only.
+      // Live scores, scorers, cards.
       match /fixtures/{fixtureId} {
         allow read: if true;
-        allow write: if isScorekeeper();
+        allow write: if true; // was scorekeeper-only — see header
       }
 
-      // Travel + attendance — the owning team's manager only.
+      // Travel + attendance.
       match /travel/{teamId} {
         allow read: if true;
-        allow write: if isManagerOf(teamId);
+        allow write: if true; // was that team's manager only — see header
       }
 
-      // Announcements + generated reports — scorekeeper only.
+      // Announcements + generated reports.
       match /announcements/{id} {
         allow read: if true;
-        allow write: if isScorekeeper();
+        allow write: if true; // was scorekeeper-only — see header
       }
       match /reports/{id} {
         allow read: if true;
-        allow write: if isScorekeeper();
+        allow write: if true; // was scorekeeper-only — see header
       }
     }
   }

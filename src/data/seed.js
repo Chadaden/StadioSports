@@ -33,10 +33,12 @@ export const event = {
   // with a 5-minute halftime. Drives the scorekeeper match clock.
   matchFormat: { minutesPerHalf: 10, halves: 2, halftimeMinutes: 5 },
   points: {
-    soccer: { win: 3, draw: 1, loss: 0 }, // TODO(client §11): confirm
-    netball: { win: 2, draw: 1, loss: 0 }, // TODO(client §11): confirm
+    soccer: { win: 3, draw: 1, loss: 0 }, // client-confirmed 16 Jul
+    netball: { win: 3, draw: 1, loss: 0 }, // client-confirmed 16 Jul — same as soccer
   },
-  tieBreakers: ['points', 'scoreDiff', 'headToHead'], // TODO(client §11): confirm order
+  // Client-confirmed 16 Jul: points, goal difference, goals scored,
+  // head-to-head, then fewest goals conceded.
+  tieBreakers: ['points', 'scoreDiff', 'goalsFor', 'headToHead', 'goalsAgainst'],
 }
 
 // ---------- teams (events/{eventId}/teams/{teamId}) ----------
@@ -94,33 +96,33 @@ export const teams = [
 
 // ---------- players (events/{eventId}/teams/{teamId}/players/{playerId}) ----------
 // All campuses from Inter_campus_sports_dayChad.xlsx — names / sport / role /
-// isGK only; the sensitive columns are ingested into the git-ignored
+// shirtNumber / isGK only; the sensitive columns are ingested into the git-ignored
 // data/privateProfiles.local.js keyed by these same ids (manager-only, §9).
 // Centurion: soccer squad only, from the sheet's "Player number details
 // soccer" tab (14 Jul) — no Traveling Party row yet (host, not travelling),
 // so no netball/support roster or private profile until that's submitted.
 export const players = {
   centurion: [
-    { id: 'cen-01', firstName: 'Bono hyphen', surname: 'Kholophe', role: 'player', sport: 'soccer', isGK: false },
-    { id: 'cen-02', firstName: 'Dihlora', surname: 'Dinyake', role: 'player', sport: 'soccer', isGK: false },
-    { id: 'cen-03', firstName: 'Neo', surname: 'Mokhutle', role: 'player', sport: 'soccer', isGK: false },
-    { id: 'cen-04', firstName: 'Divhani', surname: 'Mudzielwana', role: 'player', sport: 'soccer', isGK: false },
-    { id: 'cen-05', firstName: 'Phomelelo', surname: 'Phasha', role: 'player', sport: 'soccer', isGK: false },
-    { id: 'cen-06', firstName: 'Mohau', surname: 'Keoagile', role: 'player', sport: 'soccer', isGK: false },
-    { id: 'cen-07', firstName: 'Murangi', surname: 'Mashapha', role: 'player', sport: 'soccer', isGK: false },
-    { id: 'cen-08', firstName: 'Tshegofatso', surname: 'Masubelele', role: 'player', sport: 'soccer', isGK: false },
+    { id: 'cen-01', firstName: 'Bono hyphen', surname: 'Kholophe', role: 'player', sport: 'soccer', shirtNumber: 2, isGK: false },
+    { id: 'cen-02', firstName: 'Dihlora', surname: 'Dinyake', role: 'player', sport: 'soccer', shirtNumber: 3, isGK: false },
+    { id: 'cen-03', firstName: 'Neo', surname: 'Mokhutle', role: 'player', sport: 'soccer', shirtNumber: 4, isGK: false },
+    { id: 'cen-04', firstName: 'Divhani', surname: 'Mudzielwana', role: 'player', sport: 'soccer', shirtNumber: 5, isGK: false },
+    { id: 'cen-05', firstName: 'Phomelelo', surname: 'Phasha', role: 'player', sport: 'soccer', shirtNumber: 6, isGK: false },
+    { id: 'cen-06', firstName: 'Mohau', surname: 'Keoagile', role: 'player', sport: 'soccer', shirtNumber: 7, isGK: false },
+    { id: 'cen-07', firstName: 'Murangi', surname: 'Mashapha', role: 'player', sport: 'soccer', shirtNumber: 1, isGK: false },
+    { id: 'cen-08', firstName: 'Tshegofatso', surname: 'Masubelele', role: 'player', sport: 'soccer', shirtNumber: 8, isGK: false },
   ],
   musgrave: [
     { id: 'mus-01', firstName: 'Quaide', surname: 'Salie', role: 'support', sport: null, isGK: false },
-    { id: 'mus-02', firstName: 'Hamza', surname: 'Amla', role: 'player', sport: 'soccer', isGK: false },
-    { id: 'mus-03', firstName: 'Brady', surname: 'Harban', role: 'player', sport: 'soccer', isGK: false },
-    { id: 'mus-04', firstName: 'Ismaaeel', surname: 'Sheik', role: 'player', sport: 'soccer', isGK: false },
+    { id: 'mus-02', firstName: 'Hamza', surname: 'Amla', role: 'player', sport: 'soccer', shirtNumber: 2, isGK: false },
+    { id: 'mus-03', firstName: 'Brady', surname: 'Harban', role: 'player', sport: 'soccer', shirtNumber: 3, isGK: false },
+    { id: 'mus-04', firstName: 'Ismaaeel', surname: 'Sheik', role: 'player', sport: 'soccer', shirtNumber: 4, isGK: false },
     { id: 'mus-05', firstName: 'Anele', surname: 'Kubheka', role: 'support', sport: 'netball', isGK: false },
-    { id: 'mus-06', firstName: 'Alwande', surname: 'Ramukhele', role: 'player', sport: 'soccer', isGK: false },
-    { id: 'mus-07', firstName: 'Asanda', surname: 'Hlophe', role: 'player', sport: 'soccer', isGK: false },
-    { id: 'mus-08', firstName: 'Ntando', surname: 'Mlambo', role: 'player', sport: 'soccer', isGK: false },
-    { id: 'mus-09', firstName: 'Tumelo', surname: 'Mapotse', role: 'player', sport: 'soccer', isGK: false },
-    { id: 'mus-10', firstName: 'Blessing Tafara', surname: 'Madimbu', role: 'player', sport: 'soccer', isGK: false },
+    { id: 'mus-06', firstName: 'Alwande', surname: 'Ramukhele', role: 'player', sport: 'soccer', shirtNumber: 1, isGK: false },
+    { id: 'mus-07', firstName: 'Asanda', surname: 'Hlophe', role: 'player', sport: 'soccer', shirtNumber: 5, isGK: false },
+    { id: 'mus-08', firstName: 'Ntando', surname: 'Mlambo', role: 'player', sport: 'soccer', shirtNumber: 6, isGK: false },
+    { id: 'mus-09', firstName: 'Tumelo', surname: 'Mapotse', role: 'player', sport: 'soccer', shirtNumber: 7, isGK: false },
+    { id: 'mus-10', firstName: 'Blessing Tafara', surname: 'Madimbu', role: 'player', sport: 'soccer', shirtNumber: 8, isGK: false },
     { id: 'mus-11', firstName: 'Siyabonga Malusi', surname: 'Maphumulo', role: 'support', sport: 'netball', isGK: false },
     { id: 'mus-12', firstName: 'Melissa Amanda', surname: 'Kitsher', role: 'player', sport: 'netball', isGK: false },
     { id: 'mus-13', firstName: 'Leigh-Anne', surname: 'Yeni', role: 'player', sport: 'netball', isGK: false },
@@ -135,15 +137,15 @@ export const players = {
   durbanville: [
     { id: 'dur-01', firstName: 'Monette', surname: 'Biggins', role: 'hoc', sport: null, isGK: false },
     { id: 'dur-02', firstName: 'Quinton', surname: 'Du Toit', role: 'support', sport: null, isGK: false },
-    { id: 'dur-03', firstName: 'Umair', surname: 'Aspeling', role: 'player', sport: 'soccer', isGK: false },
-    { id: 'dur-04', firstName: 'Cameron', surname: 'Clayton', role: 'player', sport: 'soccer', isGK: true },
-    { id: 'dur-05', firstName: 'Ugochukwu', surname: 'Ezeh', role: 'player', sport: 'soccer', isGK: false },
-    { id: 'dur-06', firstName: 'Noah', surname: 'Williams', role: 'player', sport: 'soccer', isGK: false },
-    { id: 'dur-07', firstName: 'Phumlani', surname: 'Sikwana', role: 'player', sport: 'soccer', isGK: false },
-    { id: 'dur-08', firstName: 'Sinegugu', surname: 'Mgoduka', role: 'player', sport: 'soccer', isGK: false },
-    { id: 'dur-09', firstName: 'Luke', surname: 'Alexander', role: 'player', sport: 'soccer', isGK: false },
+    { id: 'dur-03', firstName: 'Umair', surname: 'Aspeling', role: 'player', sport: 'soccer', shirtNumber: 2, isGK: false },
+    { id: 'dur-04', firstName: 'Cameron', surname: 'Clayton', role: 'player', sport: 'soccer', shirtNumber: 1, isGK: true },
+    { id: 'dur-05', firstName: 'Ugochukwu', surname: 'Ezeh', role: 'player', sport: 'soccer', shirtNumber: 3, isGK: false },
+    { id: 'dur-06', firstName: 'Noah', surname: 'Williams', role: 'player', sport: 'soccer', shirtNumber: 4, isGK: false },
+    { id: 'dur-07', firstName: 'Phumlani', surname: 'Sikwana', role: 'player', sport: 'soccer', shirtNumber: 5, isGK: false },
+    { id: 'dur-08', firstName: 'Sinegugu', surname: 'Mgoduka', role: 'player', sport: 'soccer', shirtNumber: 6, isGK: false },
+    { id: 'dur-09', firstName: 'Luke', surname: 'Alexander', role: 'player', sport: 'soccer', shirtNumber: 7, isGK: false },
     { id: 'dur-10', firstName: 'Shane', surname: 'Christians', role: 'support', sport: 'soccer', isGK: false },
-    { id: 'dur-11', firstName: 'Simon', surname: 'Kadzomba', role: 'player', sport: 'soccer', isGK: false },
+    { id: 'dur-11', firstName: 'Simon', surname: 'Kadzomba', role: 'player', sport: 'soccer', shirtNumber: 8, isGK: false },
     { id: 'dur-12', firstName: 'Kerryn', surname: 'Busch', role: 'player', sport: 'netball', isGK: false },
     { id: 'dur-13', firstName: 'Michaela', surname: 'Lilley', role: 'player', sport: 'netball', isGK: false },
     { id: 'dur-14', firstName: 'Jana', surname: 'Jacobs', role: 'player', sport: 'netball', isGK: false },
@@ -156,19 +158,19 @@ export const players = {
     { id: 'dur-21', firstName: 'Catelyn', surname: 'Michelle Levey', role: 'player', sport: 'netball', isGK: false },
   ],
   waterfall: [
-    { id: 'wat-01', firstName: 'Sekepe', surname: 'Ramodika', role: 'player', sport: 'soccer', isGK: false },
-    { id: 'wat-02', firstName: 'Matsobane', surname: 'Mangoale', role: 'player', sport: 'soccer', isGK: false },
-    { id: 'wat-03', firstName: 'Maumela Benedict', surname: 'Ngwekhulu', role: 'player', sport: 'soccer', isGK: false },
-    { id: 'wat-04', firstName: 'Lihle', surname: 'Matika', role: 'player', sport: 'soccer', isGK: false },
-    { id: 'wat-05', firstName: 'Siya', surname: 'Thusi', role: 'player', sport: 'soccer', isGK: false },
-    { id: 'wat-06', firstName: 'Kutloano', surname: 'Mothibi', role: 'player', sport: 'soccer', isGK: false },
+    { id: 'wat-01', firstName: 'Sekepe', surname: 'Ramodika', role: 'player', sport: 'soccer', shirtNumber: 2, isGK: false },
+    { id: 'wat-02', firstName: 'Matsobane', surname: 'Mangoale', role: 'player', sport: 'soccer', shirtNumber: 3, isGK: false },
+    { id: 'wat-03', firstName: 'Maumela Benedict', surname: 'Ngwekhulu', role: 'player', sport: 'soccer', shirtNumber: 1, isGK: false },
+    { id: 'wat-04', firstName: 'Lihle', surname: 'Matika', role: 'player', sport: 'soccer', shirtNumber: 4, isGK: false },
+    { id: 'wat-05', firstName: 'Siya', surname: 'Thusi', role: 'player', sport: 'soccer', shirtNumber: 5, isGK: false },
+    { id: 'wat-06', firstName: 'Kutloano', surname: 'Mothibi', role: 'player', sport: 'soccer', shirtNumber: 6, isGK: false },
     { id: 'wat-07', firstName: 'Tayler Skye', surname: 'Thomas', role: 'player', sport: 'netball', isGK: false },
     { id: 'wat-08', firstName: 'Keabetswe', surname: 'Mokgoro', role: 'player', sport: 'netball', isGK: false },
     { id: 'wat-09', firstName: 'Gabisile', surname: 'Mdyogolo', role: 'player', sport: 'netball', isGK: false },
     { id: 'wat-10', firstName: 'Houlemata Kiesha', surname: 'Toure', role: 'player', sport: 'netball', isGK: false },
     { id: 'wat-11', firstName: 'Joy', surname: 'Makhubele', role: 'player', sport: 'netball', isGK: false },
-    { id: 'wat-12', firstName: 'Luyanda', surname: 'Mcunukelwa', role: 'player', sport: 'soccer', isGK: false },
-    { id: 'wat-13', firstName: 'Keven Nathaniel', surname: 'Marambakuyana', role: 'player', sport: 'soccer', isGK: false },
+    { id: 'wat-12', firstName: 'Luyanda', surname: 'Mcunukelwa', role: 'player', sport: 'soccer', shirtNumber: 7, isGK: false },
+    { id: 'wat-13', firstName: 'Keven Nathaniel', surname: 'Marambakuyana', role: 'player', sport: 'soccer', shirtNumber: 8, isGK: false },
     { id: 'wat-14', firstName: 'Tshireletso', surname: 'Menyatsoe', role: 'player', sport: 'netball', isGK: false },
     { id: 'wat-15', firstName: 'Malebelo Refentse', surname: 'Sekgotodi', role: 'player', sport: 'netball', isGK: false },
     { id: 'wat-16', firstName: 'Pheladi', surname: 'Makua', role: 'player', sport: 'netball', isGK: false },

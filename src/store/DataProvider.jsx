@@ -14,6 +14,16 @@ import {
 import { db, EVENT_ID, isFirebaseConfigured } from '../firebase/config'
 import { buildSeedSnapshot, MILESTONES } from '../data/seed'
 import { elapsedSeconds } from '../lib/clock'
+import {
+  activateSportState,
+  addSinBinCardState,
+  adjustScoreState,
+  pauseClockState,
+  resetClockState,
+  resumeClockState,
+  startClockState,
+  startSecondHalfState,
+} from '../lib/matchState'
 import { useRole } from './RoleContext'
 
 const DataContext = createContext(null)
@@ -26,9 +36,10 @@ export function DataProvider({ children }) {
   const [loading, setLoading] = useState(isFirebaseConfigured)
 
   // Manager-only private profiles (emergency contact / medical / dietary, §9).
-  // Live: one listener on the manager's own team's `private` subcollection —
-  // security rules deny it to everyone else, and no public screen ever loads
-  // it. Demo: lazy-load the GIT-IGNORED local module (separate chunk, manager
+  // Live: one listener on the manager's own team's `private` subcollection.
+  // No public screen loads it; during the approved link-gated test this is UI
+  // isolation only because Firestore does not yet have authenticated roles.
+  // Demo: lazy-load the GIT-IGNORED local module (separate chunk, manager
   // role only) — the glob resolves to nothing when the file is absent, so a
   // fresh clone still builds and managers see "No private details on file".
   const [profiles, setProfiles] = useState({})
@@ -60,6 +71,11 @@ export function DataProvider({ children }) {
     const next = {
       event: null, teams: [], players: {}, fixtures: [], travel: {}, announcements: [],
     }
+    const ready = {
+      event: false, teams: false, fixtures: false, travel: false, announcements: false,
+    }
+    const expectedPlayerTeams = new Set()
+    const loadedPlayerTeams = new Set()
     let started = false
     const commit = () => {
       if (!started) return
@@ -70,20 +86,32 @@ export function DataProvider({ children }) {
         travel: next.travel,
         announcements: next.announcements,
       })
-      setLoading(false)
+      const coreReady = Object.values(ready).every(Boolean)
+      const rostersReady = [...expectedPlayerTeams].every((id) => loadedPlayerTeams.has(id))
+      setLoading(!(coreReady && rostersReady))
     }
 
     const unsubs = []
-    unsubs.push(onSnapshot(base, (d) => { next.event = { id: d.id, ...d.data() }; commit() }))
+    unsubs.push(onSnapshot(base, (d) => {
+      next.event = { id: d.id, ...d.data() }
+      ready.event = true
+      commit()
+    }))
 
     unsubs.push(onSnapshot(query(collection(base, 'teams')), (qs) => {
       next.teams = qs.docs.map((d) => ({ id: d.id, ...d.data() }))
-      // subscribe to each team's players lazily on first sight
+      ready.teams = true
+      // Managers receive only their own roster. Team metadata stays available
+      // for fixtures, standings and travel, but other campuses' player names
+      // and attendance details never enter a manager session.
       next.teams.forEach((t) => {
+        if (role === 'manager' && t.id !== myTeamId) return
+        expectedPlayerTeams.add(t.id)
         if (next.players[t.id] !== undefined) return
         next.players[t.id] = []
         unsubs.push(onSnapshot(query(collection(base, 'teams', t.id, 'players')), (ps) => {
           next.players[t.id] = ps.docs.map((d) => ({ id: d.id, ...d.data() }))
+          loadedPlayerTeams.add(t.id)
           commit()
         }))
       })
@@ -93,31 +121,34 @@ export function DataProvider({ children }) {
     unsubs.push(onSnapshot(query(collection(base, 'fixtures')), (qs) => {
       next.fixtures = qs.docs.map((d) => ({ id: d.id, ...d.data() }))
         .sort((a, b) => (a.matchNo || 0) - (b.matchNo || 0))
+      ready.fixtures = true
       commit()
     }))
 
     unsubs.push(onSnapshot(query(collection(base, 'travel')), (qs) => {
       next.travel = Object.fromEntries(qs.docs.map((d) => [d.id, d.data()]))
+      ready.travel = true
       commit()
     }))
 
     unsubs.push(onSnapshot(query(collection(base, 'announcements')), (qs) => {
       next.announcements = qs.docs.map((d) => ({ id: d.id, ...d.data() }))
         .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+      ready.announcements = true
       commit()
     }))
 
     started = true
     commit()
     return () => unsubs.forEach((u) => u())
-  }, [])
+  }, [role, myTeamId])
 
   // -------------------------------------------------------------------------
   // Write actions (Phase 2 Scorekeeper, §8). Each works in both modes:
   //   live  → write to Firestore; the onSnapshot listeners reflect it back
   //   demo  → mutate the local snapshot so the experience is fully testable.
-  // Security rules (§3) enforce who may call these in live mode; the link
-  // gates it in demo mode (§7 MVP shortcut).
+  // During this approved test, role links gate the visible controls; real
+  // database-level role enforcement still requires Firebase Auth.
   // -------------------------------------------------------------------------
   const actions = useMemo(() => {
     const fixtureRef = (id) => doc(db, 'events', EVENT_ID, 'fixtures', id)
@@ -137,41 +168,26 @@ export function DataProvider({ children }) {
     }
 
     return {
-      // Kick-off: upcoming → live and the match clock starts (1st half).
+      // Start the match without starting the independent match clock.
       startSport: (fixtureId, sport) =>
-        writeSport(fixtureId, sport, (s) => ({
-          ...s,
-          status: 'live',
-          clock: { phase: 'h1', runningSince: new Date().toISOString(), baseSeconds: 0 },
-        })),
+        writeSport(fixtureId, sport, activateSportState),
+
+      startClock: (fixtureId, sport) =>
+        writeSport(fixtureId, sport, startClockState),
 
       // Half-time / pause: bank the played seconds, stop ticking.
       pauseClock: (fixtureId, sport) =>
-        writeSport(fixtureId, sport, (s) => {
-          if (!s.clock?.runningSince) return s
-          return {
-            ...s,
-            clock: {
-              phase: s.clock.phase === 'h1' ? 'ht' : 'paused',
-              runningSince: null,
-              baseSeconds: Math.round(elapsedSeconds(s.clock)),
-            },
-          }
-        }),
+        writeSport(fixtureId, sport, pauseClockState),
 
       // Start 2nd half / resume: clock ticks again from the banked seconds.
       resumeClock: (fixtureId, sport) =>
-        writeSport(fixtureId, sport, (s) => {
-          if (!s.clock || s.clock.runningSince) return s
-          return {
-            ...s,
-            clock: {
-              phase: 'h2',
-              runningSince: new Date().toISOString(),
-              baseSeconds: s.clock.baseSeconds || 0,
-            },
-          }
-        }),
+        writeSport(fixtureId, sport, resumeClockState),
+
+      startSecondHalf: (fixtureId, sport) =>
+        writeSport(fixtureId, sport, startSecondHalfState),
+
+      resetClock: (fixtureId, sport) =>
+        writeSport(fixtureId, sport, resetClockState),
 
       // Goal: bumps the score AND logs the scorer (with the clock minute
       // captured in the UI at tap time) in one write — pushes to every viewer.
@@ -182,13 +198,9 @@ export function DataProvider({ children }) {
           scorers: [...s.scorers, scorer],
         })),
 
-      // +/- score corrections (also auto-starts an upcoming match on first tap)
+      // +/- score corrections (also marks an upcoming match live, clock stopped)
       adjustScore: (fixtureId, sport, side, delta) =>
-        writeSport(fixtureId, sport, (s) => ({
-          ...s,
-          status: s.status === 'upcoming' ? 'live' : s.status,
-          [side]: Math.max(0, (s[side] || 0) + delta),
-        })),
+        writeSport(fixtureId, sport, (s) => adjustScoreState(s, side, delta)),
 
       // Undo a mis-tapped goal: drops the scorer entry AND the point in the
       // same write (two separate writes could race each other on stale state).
@@ -209,7 +221,7 @@ export function DataProvider({ children }) {
         writeSport(fixtureId, sport, (s) => ({ ...s, scorers: [...s.scorers, scorer] })),
 
       addCard: (fixtureId, sport, card) =>
-        writeSport(fixtureId, sport, (s) => ({ ...s, cards: [...s.cards, card] })),
+        writeSport(fixtureId, sport, (s) => addSinBinCardState(s, card)),
 
       // publish (live → final, locks, clock stops) / reopen (final → live)
       publishSport: (fixtureId, sport) =>

@@ -7,40 +7,33 @@ import PlayerCard from '../components/PlayerCard'
 // TEAM tab (§3, §6) — Team Manager only. Replaces Live as the manager's first
 // tab: their own campus roster (soccer + netball + support/HOC) as tappable
 // cards, opening the private PlayerCard (contact, emergency, medical,
-// dietary). Other campuses' rosters are also browsable — names/sport/role
-// only, no PII — via the same segmented control (§7, §9).
+// dietary). Scoped strictly to the manager's own campus — no browsing other
+// campuses' rosters, not even names/sport/role (§9, client request 16 Jul).
 export default function TeamScreen() {
   const { teams = [] } = useData()
   const { teamId: myTeamId } = useRole()
-  const [active, setActive] = useState(myTeamId || teams[0]?.id)
-  const team = teams.find((t) => t.id === active) || teams.find((t) => t.id === myTeamId) || teams[0]
+  const team = teams.find((t) => t.id === myTeamId)
 
-  return (
-    <>
-      <div className="segmented" style={{ flexWrap: 'wrap' }}>
-        {teams.map((t) => (
-          <button key={t.id} className={t.id === active ? 'active' : ''} onClick={() => setActive(t.id)}>
-            {t.code}
-          </button>
-        ))}
-      </div>
+  if (!team) {
+    return (
+      <EmptyState
+        title="No team assigned"
+        sub="This manager link isn't tied to a campus — check the ?team= link you were sent."
+      />
+    )
+  }
 
-      {team && <TeamRoster team={team} />}
-    </>
-  )
+  return <TeamRoster team={team} />
 }
 
 function TeamRoster({ team }) {
-  const { teamId: myTeamId } = useRole()
   const { profiles } = useData()
   const [openPlayerId, setOpenPlayerId] = useState(null)
   const players = team.players || []
-  const isOwnTeam = myTeamId === team.id
 
   if (!team.rosterLoaded || players.length === 0) {
     return (
       <EmptyState
-        glyph="📋"
         title="Roster pending"
         sub={`${team.name}'s squad will appear here once the campus submits its players.`}
       />
@@ -62,17 +55,15 @@ function TeamRoster({ team }) {
         <span className="chip" style={{ marginLeft: 'auto' }}>{players.length} listed</span>
       </div>
 
-      {isOwnTeam && (
-        <div className="muted" style={{ fontSize: 11.5, margin: '0 2px 10px' }}>
-          Tap a player for contact, emergency, medical & dietary details.
-        </div>
-      )}
+      <div className="muted" style={{ fontSize: 11.5, margin: '0 2px 10px' }}>
+        Tap a player for contact, emergency, medical & dietary details.
+      </div>
 
-      <SportGroup title="⚽ Soccer" players={bySport.soccer} onOpen={isOwnTeam ? setOpenPlayerId : null} />
-      <SportGroup title="🏐 Netball" players={bySport.netball} onOpen={isOwnTeam ? setOpenPlayerId : null} />
-      <SportGroup title="Team staff" players={bySport.other} onOpen={isOwnTeam ? setOpenPlayerId : null} />
+      <SportGroup title="Soccer" players={bySport.soccer} onOpen={setOpenPlayerId} />
+      <SportGroup title="Netball" players={bySport.netball} onOpen={setOpenPlayerId} />
+      <SportGroup title="Team staff" players={bySport.other} onOpen={setOpenPlayerId} />
 
-      {isOwnTeam && openPlayer && (
+      {openPlayer && (
         <PlayerCard
           player={openPlayer}
           team={team}
@@ -93,12 +84,11 @@ function SportGroup({ title, players, onOpen }) {
         {players.map((p) => {
           const inner = (
             <>
-              <span className="nm">{p.firstName} {p.surname}</span>
+              <span className="nm">{p.shirtNumber ? `#${p.shirtNumber} ` : ''}{p.firstName} {p.surname}</span>
               <span className="tags">
                 {p.isGK && <span className="tag-role tag-gk">GK</span>}
                 {p.role === 'support' && <span className="tag-role">Support</span>}
                 {p.role === 'hoc' && <span className="tag-role">HOC</span>}
-                {onOpen && <span className="muted">›</span>}
               </span>
             </>
           )

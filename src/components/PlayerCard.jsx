@@ -23,7 +23,7 @@ function CallRow({ label, name, number }) {
         <span className="pc-label">{label}</span>
         <span className="pc-value">{name ? <>{name}<br /></> : null}<span className="pc-num">{number}</span></span>
       </div>
-      <a className="pc-call" href={telHref(number)}>📞 Call</a>
+      <a className="pc-call" href={telHref(number)}>Call</a>
     </div>
   )
 }
@@ -59,31 +59,31 @@ export default function PlayerCard({ player, team, profile, onClose }) {
         <div className="pc-head">
           <Crest team={team} />
           <div className="pc-title">
-            <div className="pc-name">{player.firstName} {player.surname}</div>
+            <div className="pc-name">{player.shirtNumber ? `#${player.shirtNumber} ` : ''}{player.firstName} {player.surname}</div>
             <div className="pc-tags">
               {player.sport && <span className="tag-role">{player.sport}</span>}
               {player.isGK && <span className="tag-role tag-gk">GK</span>}
               {player.role === 'support' && <span className="tag-role">Support</span>}
               {player.role === 'hoc' && <span className="tag-role">HOC</span>}
               <span className={`tag-role ${player.present ? 'tag-present' : ''}`}>
-                {player.present ? '✓ Present' : 'Not marked present'}
+                {player.present ? 'Present' : 'Not marked present'}
               </span>
             </div>
           </div>
-          <button className="pc-close" onClick={onClose} aria-label="Close">✕</button>
+          <button className="pc-close" onClick={onClose}>Close</button>
         </div>
 
         {profile ? (
           <div className="pc-body">
-            <InfoRow label="🩺 Medical conditions" value={profile.medical} alert={Boolean(profile.medical)} />
+            <InfoRow label="Medical conditions" value={profile.medical} alert={Boolean(profile.medical)} />
             {profile.emergencyPhone || profile.emergencyName ? (
-              <CallRow label="🚨 Emergency contact" name={profile.emergencyName} number={profile.emergencyPhone} />
+              <CallRow label="Emergency contact" name={profile.emergencyName} number={profile.emergencyPhone} />
             ) : (
-              <InfoRow label="🚨 Emergency contact" value={null} />
+              <InfoRow label="Emergency contact" value={null} />
             )}
-            <CallRow label="📱 Player cell" number={profile.phone} />
-            <InfoRow label="🥗 Dietary requirements" value={profile.dietary} />
-            {profile.notes && <InfoRow label="📝 Notes" value={profile.notes} />}
+            <CallRow label="Player cell" number={profile.phone} />
+            <InfoRow label="Dietary requirements" value={profile.dietary} />
+            {profile.notes && <InfoRow label="Notes" value={profile.notes} />}
           </div>
         ) : (
           <div className="pc-body">

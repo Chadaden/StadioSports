@@ -18,8 +18,8 @@ export default function TableScreen() {
   return (
     <>
       <div className="segmented" role="tablist">
-        <button role="tab" className={sport === 'soccer' ? 'active soccer' : ''} onClick={() => setSport('soccer')}>⚽ Soccer</button>
-        <button role="tab" className={sport === 'netball' ? 'active netball' : ''} onClick={() => setSport('netball')}>🏐 Netball</button>
+        <button role="tab" className={sport === 'soccer' ? 'active soccer' : ''} onClick={() => setSport('soccer')}>Soccer</button>
+        <button role="tab" className={sport === 'netball' ? 'active netball' : ''} onClick={() => setSport('netball')}>Netball</button>
       </div>
 
       <div className="card">
@@ -47,7 +47,6 @@ export default function TableScreen() {
 
       {!anyPlayed && (
         <EmptyState
-          glyph="🏆"
           title="No results yet"
           sub="The table fills in as round-robin matches reach full-time. Top two advance to the final; 3rd & 4th meet in the playoff."
         />

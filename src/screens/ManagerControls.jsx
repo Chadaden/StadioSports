@@ -51,12 +51,12 @@ function AttendancePanel({ team }) {
           className="mgr-btn-primary"
           onClick={() => actions.markAllPresent(team.id)}
         >
-          ✓ Mark all present
+          Mark all present
         </button>
       )}
 
       <div className="muted" style={{ fontSize: 11.5, margin: '8px 0 0' }}>
-        Tick to mark present · tap a name for medical & emergency details
+        Mark attendance, or tap a name for medical and emergency details.
       </div>
 
       <div className="att-list">
@@ -67,13 +67,12 @@ function AttendancePanel({ team }) {
               aria-label={`Mark ${p.firstName} ${p.surname} ${p.present ? 'absent' : 'present'}`}
               onClick={() => actions.togglePresent(team.id, p.id, p.present)}
             >
-              {p.present ? '✓' : ''}
+              {p.present ? 'Present' : 'Absent'}
             </button>
             <button className="att-name att-open" onClick={() => setOpenPlayerId(p.id)}>
-              {p.firstName} {p.surname}
+              {p.shirtNumber ? `#${p.shirtNumber} ` : ''}{p.firstName} {p.surname}
             </button>
             <span className="att-tag muted">{p.sport ?? p.role}</span>
-            <span className="att-chev muted">›</span>
           </div>
         ))}
       </div>
@@ -102,13 +101,13 @@ function MilestonePanel({ teamId, travelState }) {
         <span className="kicker">Travel status</span>
       </div>
       {arrived ? (
-        <div className="mgr-arrived">🎉 Squad arrived at Centurion Campus</div>
+        <div className="mgr-arrived">Squad arrived at Centurion Campus</div>
       ) : (
         <button
           className="mgr-btn-primary"
           onClick={() => actions.advanceMilestone(teamId)}
         >
-          Advance → {MILESTONE_LABELS[MILESTONES[currentIdx + 1]] ?? '—'}
+          Advance to {MILESTONE_LABELS[MILESTONES[currentIdx + 1]] ?? '—'}
         </button>
       )}
       <div className="muted" style={{ fontSize: 11.5, marginTop: 6 }}>

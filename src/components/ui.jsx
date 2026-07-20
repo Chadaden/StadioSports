@@ -37,10 +37,9 @@ export function StatusChip({ status }) {
   return <span className="chip chip-upcoming">Upcoming</span>
 }
 
-export function EmptyState({ glyph = '🗓️', title, sub }) {
+export function EmptyState({ title, sub }) {
   return (
     <div className="empty">
-      <div className="e-glyph">{glyph}</div>
       <div className="e-title">{title}</div>
       {sub && <div className="e-sub">{sub}</div>}
     </div>

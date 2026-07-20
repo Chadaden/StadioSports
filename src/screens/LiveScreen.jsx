@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useData, useTeamMap } from '../store/DataProvider'
 import { useIsScorekeeper } from '../store/RoleContext'
 import { Crest, LiveBadge, EmptyState, SectionLabel } from '../components/ui'
-import { SPORT_GLYPH } from '../lib/constants'
 import { PHASE_LABELS, formatClock, useClockTick } from '../lib/clock'
 
 // LIVE tab (§6): hero for the in-progress pairing (both sports), "Up next",
@@ -28,7 +27,6 @@ export default function LiveScreen() {
       ) : (
         <div className="card">
           <EmptyState
-            glyph="📡"
             title="No match in progress"
             sub="Live scores appear here the moment the first whistle goes."
           />
@@ -87,7 +85,7 @@ function SportLine({ sport, data }) {
   return (
     <>
       <div className={`sportline ${sport}`}>
-        <span className="label">{SPORT_GLYPH[sport]} {sport[0].toUpperCase() + sport.slice(1)}</span>
+        <span className="label">{sport[0].toUpperCase() + sport.slice(1)}</span>
         <span className="score">
           {showScore ? (
             <>{data.home}<span className="dash">–</span>{data.away}</>
@@ -118,7 +116,7 @@ function ScorerFeed({ sport, scorers }) {
     <div className="scorer-feed">
       {[...scorers].reverse().map((sc, i) => (
         <span className="ev-chip" key={i}>
-          {SPORT_GLYPH[sport]} {sc.minute ? `${sc.minute}' ` : ''}{sc.name || 'Goal'}
+          {sport === 'soccer' ? 'Soccer' : 'Netball'}: {sc.minute ? `${sc.minute}' ` : ''}{sc.name || 'Goal'}
         </span>
       ))}
     </div>
