@@ -9,7 +9,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  addDoc, collection, doc, onSnapshot, query, serverTimestamp, updateDoc, writeBatch,
+  addDoc, collection, doc, getDocs, onSnapshot, query, serverTimestamp, updateDoc, writeBatch,
 } from 'firebase/firestore'
 import { db, EVENT_ID, isFirebaseConfigured } from '../firebase/config'
 import { buildSeedSnapshot, MILESTONES } from '../data/seed'
@@ -43,19 +43,43 @@ export function DataProvider({ children }) {
   // role only) — the glob resolves to nothing when the file is absent, so a
   // fresh clone still builds and managers see "No private details on file".
   const [profiles, setProfiles] = useState({})
+  const [profilesLoading, setProfilesLoading] = useState(
+    isFirebaseConfigured && role === 'manager' && Boolean(myTeamId),
+  )
   useEffect(() => {
     if (role !== 'manager' || !myTeamId) return
     if (isFirebaseConfigured) {
-      return onSnapshot(
-        collection(db, 'events', EVENT_ID, 'teams', myTeamId, 'private'),
-        (qs) => setProfiles(Object.fromEntries(qs.docs.map((d) => [d.id, d.data()]))),
-      )
+      const profilesRef = collection(db, 'events', EVENT_ID, 'teams', myTeamId, 'private')
+      let alive = true
+      const applyProfiles = (qs) => {
+        if (!alive) return
+        setProfiles(Object.fromEntries(qs.docs.map((d) => [d.id, d.data()])))
+        setProfilesLoading(false)
+      }
+      const reportError = (error) => {
+        if (!alive) return
+        console.error('Unable to load private player profiles:', error)
+        setProfilesLoading(false)
+      }
+
+      // Establish an explicit initial-read boundary before exposing player
+      // cards, then keep the same collection live for any organiser updates.
+      getDocs(profilesRef).then(applyProfiles, reportError)
+      const unsubscribe = onSnapshot(profilesRef, applyProfiles, reportError)
+      return () => {
+        alive = false
+        unsubscribe()
+      }
     }
     const modules = import.meta.glob('../data/privateProfiles.local.js')
     const load = modules['../data/privateProfiles.local.js']
     if (!load) return
     let alive = true
-    load().then((m) => { if (alive) setProfiles(m.playerProfiles) })
+    load().then((m) => {
+      if (!alive) return
+      setProfiles(m.playerProfiles)
+      setProfilesLoading(false)
+    })
     return () => { alive = false }
   }, [role, myTeamId])
 
@@ -342,8 +366,8 @@ export function DataProvider({ children }) {
   }, [])
 
   const value = useMemo(
-    () => ({ ...(snapshot || {}), profiles, loading, isLive: isFirebaseConfigured, actions }),
-    [snapshot, profiles, loading, actions],
+    () => ({ ...(snapshot || {}), profiles, loading: loading || profilesLoading, isLive: isFirebaseConfigured, actions }),
+    [snapshot, profiles, loading, profilesLoading, actions],
   )
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>

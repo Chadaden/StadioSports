@@ -11,6 +11,8 @@ test('manager sessions subscribe only to their assigned campus roster', () => {
   const source = read('src/store/DataProvider.jsx')
   assert.match(source, /role === 'manager' && t\.id !== myTeamId/)
   assert.match(source, /'teams', myTeamId, 'private'/)
+  assert.match(source, /getDocs\(profilesRef\)\.then\(applyProfiles, reportError\)/)
+  assert.match(source, /loading: loading \|\| profilesLoading/)
   assert.match(source, /coreReady && rostersReady/)
 })
 
