@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Crest } from './ui'
 
 // Manager-only player card (§9). Opened by tapping a player's name in the
@@ -53,7 +54,7 @@ export default function PlayerCard({ player, team, profile, onClose }) {
 
   if (!player) return null
 
-  return (
+  return createPortal(
     <div className="pc-overlay" onClick={onClose}>
       <div className="pc-card" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
         <div className="pc-head">
@@ -93,6 +94,7 @@ export default function PlayerCard({ player, team, profile, onClose }) {
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
