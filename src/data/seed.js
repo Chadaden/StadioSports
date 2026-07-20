@@ -33,10 +33,12 @@ export const event = {
   // with a 5-minute halftime. Drives the scorekeeper match clock.
   matchFormat: { minutesPerHalf: 10, halves: 2, halftimeMinutes: 5 },
   points: {
-    soccer: { win: 3, draw: 1, loss: 0 }, // TODO(client §11): confirm
-    netball: { win: 2, draw: 1, loss: 0 }, // TODO(client §11): confirm
+    soccer: { win: 3, draw: 1, loss: 0 }, // client-confirmed 16 Jul
+    netball: { win: 3, draw: 1, loss: 0 }, // client-confirmed 16 Jul — same as soccer
   },
-  tieBreakers: ['points', 'scoreDiff', 'headToHead'], // TODO(client §11): confirm order
+  // Client-confirmed 16 Jul: points, goal difference, goals scored,
+  // head-to-head, then fewest goals conceded.
+  tieBreakers: ['points', 'scoreDiff', 'goalsFor', 'headToHead', 'goalsAgainst'],
 }
 
 // ---------- teams (events/{eventId}/teams/{teamId}) ----------

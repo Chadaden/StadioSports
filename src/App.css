@@ -162,6 +162,11 @@ button:active:not(:disabled) { transform: scale(0.97); }
 .fixture .fx-pair { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .fixture .fx-pair .name { font-size: 14px; font-weight: 700; color: #3f4346; }
 .fixture .fx-pair .mid { margin-left: auto; color: var(--grey); font-size: 12px; font-weight: 700; }
+.fx-pair-bracket { margin-bottom: 10px; }
+.fx-pair-bracket .fx-pair { margin-bottom: 4px; }
+.fx-pair-bracket-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.fx-pair-bracket-head .s-label { font-size: 12px; font-weight: 700; color: var(--ink-soft); display: flex; align-items: center; gap: 5px; }
+.fx-pair-bracket-head .chip { font-size: 10px; padding: 2px 8px; }
 .fx-scores { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .fx-scores .cell {
   background: var(--bg-soft); border-radius: var(--radius-control); padding: 8px 10px 8px 9px;
