@@ -1,8 +1,10 @@
+import { useMemo } from 'react'
 import { useData, useTeamMap } from '../store/DataProvider'
 import { useIsScorekeeper } from '../store/RoleContext'
 import { Crest, StatusChip, SectionLabel } from '../components/ui'
 import { SPORT_GLYPH } from '../lib/constants'
 import { formatClock, useClockTick } from '../lib/clock'
+import { projectBracket } from '../lib/standings'
 import ScorekeeperControls from './ScorekeeperControls'
 import { MancoReportButton } from './MancoReport'
 
@@ -10,9 +12,17 @@ import { MancoReportButton } from './MancoReport'
 // and the soccer + netball lines. Viewer is read-only; the Scorekeeper sees
 // inline live-scoring controls on each match plus the MANCO report button.
 export default function FixturesScreen() {
-  const { fixtures = [] } = useData()
+  const { fixtures = [], teams: teamsArr = [], event } = useData()
   const teams = useTeamMap()
   const isScorekeeper = useIsScorekeeper()
+
+  // 3rd/4th playoff + final pairings, projected live from the round-robin
+  // standings — computed independently per sport since soccer and netball
+  // tables can diverge.
+  const bracket = useMemo(() => ({
+    soccer: projectBracket('soccer', fixtures, teamsArr, event),
+    netball: projectBracket('netball', fixtures, teamsArr, event),
+  }), [fixtures, teamsArr, event])
 
   return (
     <>
@@ -26,15 +36,16 @@ export default function FixturesScreen() {
         </>
       )}
       {fixtures.map((f) => (
-        <FixtureCard key={f.id} fixture={f} teams={teams} showControls={isScorekeeper} />
+        <FixtureCard key={f.id} fixture={f} teams={teams} showControls={isScorekeeper} bracket={bracket} />
       ))}
     </>
   )
 }
 
 const ROUND_LABEL = { roundRobin: 'Round robin', playoff: '3rd / 4th playoff', final: 'Final' }
+const BRACKET_KEY = { playoff: 'playoff', final: 'final' }
 
-function FixtureCard({ fixture, teams, showControls }) {
+function FixtureCard({ fixture, teams, showControls, bracket }) {
   const home = teams[fixture.homeTeamId]
   const away = teams[fixture.awayTeamId]
   const now = useClockTick(fixture.soccer?.clock, fixture.netball?.clock)
@@ -43,6 +54,7 @@ function FixtureCard({ fixture, teams, showControls }) {
     fixture.soccer?.status === 'live' || fixture.netball?.status === 'live' ? 'live'
     : fixture.soccer?.status === 'final' && fixture.netball?.status === 'final' ? 'final'
     : 'upcoming'
+  const bracketKey = BRACKET_KEY[fixture.round]
 
   return (
     <div className={`card fixture${status === 'live' ? ' is-live' : ''}`}>
@@ -51,13 +63,20 @@ function FixtureCard({ fixture, teams, showControls }) {
         <StatusChip status={status} />
       </div>
 
-      <div className="fx-pair">
-        <Crest team={home} size="sm" />
-        <span className="name">{home ? home.name : 'TBD'}</span>
-        <span className="mid">vs</span>
-        <span className="name">{away ? away.name : 'TBD'}</span>
-        <Crest team={away} size="sm" />
-      </div>
+      {bracketKey ? (
+        <>
+          <BracketPairing sport="soccer" projection={bracket?.soccer?.[bracketKey]} />
+          <BracketPairing sport="netball" projection={bracket?.netball?.[bracketKey]} />
+        </>
+      ) : (
+        <div className="fx-pair">
+          <Crest team={home} size="sm" />
+          <span className="name">{home ? home.name : 'TBD'}</span>
+          <span className="mid">vs</span>
+          <span className="name">{away ? away.name : 'TBD'}</span>
+          <Crest team={away} size="sm" />
+        </div>
+      )}
 
       <div className="fx-scores">
         {['soccer', 'netball'].map((sport) => {
@@ -91,6 +110,28 @@ function FixtureCard({ fixture, teams, showControls }) {
       })}
 
       {showControls && <ScorekeeperControls fixture={fixture} />}
+    </div>
+  )
+}
+
+// Playoff/final pairing projected from the current standings for one sport.
+// `projection` is null until at least one round-robin result for that sport
+// is in, so it renders as a plain TBD until there's something to show.
+function BracketPairing({ sport, projection }) {
+  const [a, b] = projection || []
+  return (
+    <div className="fx-pair-bracket">
+      <div className="fx-pair-bracket-head">
+        <span className="s-label">{SPORT_GLYPH[sport]} {sport === 'soccer' ? 'Soccer' : 'Netball'}</span>
+        {projection && <span className="chip">As it stands</span>}
+      </div>
+      <div className="fx-pair">
+        <Crest team={a} size="sm" />
+        <span className="name">{a ? a.name : 'TBD'}</span>
+        <span className="mid">vs</span>
+        <span className="name">{b ? b.name : 'TBD'}</span>
+        <Crest team={b} size="sm" />
+      </div>
     </div>
   )
 }
