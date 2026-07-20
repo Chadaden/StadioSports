@@ -24,6 +24,12 @@ test('manager Team and Travel screens stay scoped to the assigned campus', () =>
   assert.match(travel, /teams\.filter\(\(team\) => team\.id === teamId\)/)
 })
 
+test('player cards render at the document root so animated sheets cannot trap the fixed dialog', () => {
+  const source = read('src/components/PlayerCard.jsx')
+  assert.match(source, /import \{ createPortal \} from 'react-dom'/)
+  assert.match(source, /return createPortal\([\s\S]*document\.body,/)
+})
+
 test('production source contains no pictographic interface icons', () => {
   const srcDir = fileURLToPath(new URL('src', root))
   const files = []
