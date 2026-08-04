@@ -7,6 +7,7 @@
 import { useData, useTeamMap } from '../../store/DataProvider'
 import { useIsScorekeeper } from '../../store/RoleContext'
 import { formatClock, useClockTick } from '../../lib/clock'
+import { fixtureDisplayGroups } from '../../lib/fixtureOrder'
 import { headlinePairing, sportHomeAwayIds } from '../../lib/matchState'
 import { computeStandings } from '../../lib/standings'
 import { MancoReportButton } from '../../screens/MancoReport'
@@ -20,17 +21,28 @@ export default function SdFixturesScreen() {
   const { fixtures = [], teams: teamList = [], event } = useData()
   const teams = useTeamMap()
   const isScorekeeper = useIsScorekeeper()
+  const { active, published } = fixtureDisplayGroups(fixtures)
 
   return (
     <>
       {isScorekeeper && <MancoReportButton />}
       <div className={isScorekeeper ? 'sd-scorekeeper-layout' : undefined}>
         <div className="sd-rail">
-          {fixtures.map((f) => (
+          {active.map((f) => (
             <FixtureTicket key={f.id} fixture={f} teams={teams} showControls={isScorekeeper} />
           ))}
         </div>
-        {isScorekeeper && <ScorekeeperContext fixtures={fixtures} teams={teamList} event={event} />}
+        {published.length > 0 && (
+          <details className="sd-published-games">
+            <summary>Published games <span>{published.length}</span></summary>
+            <div className="sd-rail sd-rail-published">
+              {published.map((f) => (
+                <FixtureTicket key={f.id} fixture={f} teams={teams} showControls={isScorekeeper} />
+              ))}
+            </div>
+          </details>
+        )}
+        {isScorekeeper && <ScorekeeperContext fixtures={active} teams={teamList} event={event} />}
       </div>
     </>
   )
@@ -41,7 +53,7 @@ function ScorekeeperContext({ fixtures, teams, event }) {
     <aside className="sd-sk-context" aria-label="Match-day reference">
       <div className="sd-sk-context-head">
         <span>Match-day reference</span>
-        <small>Updates as scores publish</small>
+        <small>Live and upcoming fixtures</small>
       </div>
 
       <section className="sd-sk-context-section">

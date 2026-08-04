@@ -688,6 +688,13 @@
 
 /* ---- scorekeeper desk ------------------------------------------------------- */
 .sd-sk-context { display: none; }
+.sd-published-games { margin-top: 20px; }
+.sd-published-games summary { display: flex; align-items: center; gap: 8px; cursor: pointer; list-style: none; padding: 13px 16px; border: 1px solid var(--sd-line); border-radius: 14px; background: var(--sd-card); font-size: 12px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: var(--sd-ink-soft); }
+.sd-published-games summary::-webkit-details-marker { display: none; }
+.sd-published-games summary::before { content: 'Show'; font-size: 10px; color: var(--sd-ink-faint); }
+.sd-published-games[open] summary::before { content: 'Hide'; }
+.sd-published-games summary span { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: #e8ebee; font-size: 10px; color: var(--sd-ink); }
+.sd-rail-published { margin-top: 12px; opacity: .78; }
 
 @media (min-width: 900px) {
   body { background: #dfe4e8; }
@@ -699,6 +706,7 @@
 
   .sd-scorekeeper-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; }
   .sd-scorekeeper-layout .sd-rail { min-width: 0; }
+  .sd-scorekeeper-layout .sd-published-games { grid-column: 1; }
   .sd-scorekeeper-layout .sd-stop { grid-template-columns: 56px minmax(0, 1fr); }
   .sd-scorekeeper-layout .sd-ticket { padding: 22px; }
   .sd-scorekeeper-layout .sd-sk { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
