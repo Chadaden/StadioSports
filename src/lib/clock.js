@@ -58,4 +58,3 @@ export function useClockTick(...clocks) {
   const running = clocks.some((c) => isClockRunning(c))
   return useSecondTick(running)
 }
-
