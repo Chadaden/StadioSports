@@ -212,24 +212,24 @@ export function DataProvider({ children }) {
     return {
       // Start the match without starting the independent match clock.
       startSport: (fixtureId, sport) =>
-        writeSport(fixtureId, sport, activateSportState),
+        writeSport(fixtureId, sport, (s) => activateSportState(s)),
 
       startClock: (fixtureId, sport) =>
-        writeSport(fixtureId, sport, startClockState),
+        writeSport(fixtureId, sport, (s) => startClockState(s)),
 
       // Half-time / pause: bank the played seconds, stop ticking.
       pauseClock: (fixtureId, sport) =>
-        writeSport(fixtureId, sport, pauseClockState),
+        writeSport(fixtureId, sport, (s) => pauseClockState(s)),
 
       // Start 2nd half / resume: clock ticks again from the banked seconds.
       resumeClock: (fixtureId, sport) =>
-        writeSport(fixtureId, sport, resumeClockState),
+        writeSport(fixtureId, sport, (s) => resumeClockState(s)),
 
       startSecondHalf: (fixtureId, sport) =>
-        writeSport(fixtureId, sport, startSecondHalfState),
+        writeSport(fixtureId, sport, (s) => startSecondHalfState(s)),
 
       resetClock: (fixtureId, sport) =>
-        writeSport(fixtureId, sport, resetClockState),
+        writeSport(fixtureId, sport, (s) => resetClockState(s)),
 
       // Goal: bumps the score AND logs the scorer (with the clock minute
       // captured in the UI at tap time) in one write — pushes to every viewer.
