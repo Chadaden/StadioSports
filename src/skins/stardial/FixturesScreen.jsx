@@ -8,6 +8,7 @@ import { useData, useTeamMap } from '../../store/DataProvider'
 import { useIsScorekeeper } from '../../store/RoleContext'
 import { formatClock, useClockTick } from '../../lib/clock'
 import { headlinePairing, sportHomeAwayIds } from '../../lib/matchState'
+import { computeStandings } from '../../lib/standings'
 import { MancoReportButton } from '../../screens/MancoReport'
 import { SdCrest, StatusTag } from './bits'
 import SdSkControls from './SkControls'
@@ -16,19 +17,73 @@ const ROUND_LABEL = { roundRobin: 'ROUND ROBIN', playoff: '3RD/4TH PLAYOFF', fin
 const SPORTS = ['soccer', 'netball']
 
 export default function SdFixturesScreen() {
-  const { fixtures = [] } = useData()
+  const { fixtures = [], teams: teamList = [], event } = useData()
   const teams = useTeamMap()
   const isScorekeeper = useIsScorekeeper()
 
   return (
     <>
       {isScorekeeper && <MancoReportButton />}
-      <div className="sd-rail">
-        {fixtures.map((f) => (
-          <FixtureTicket key={f.id} fixture={f} teams={teams} showControls={isScorekeeper} />
-        ))}
+      <div className={isScorekeeper ? 'sd-scorekeeper-layout' : undefined}>
+        <div className="sd-rail">
+          {fixtures.map((f) => (
+            <FixtureTicket key={f.id} fixture={f} teams={teams} showControls={isScorekeeper} />
+          ))}
+        </div>
+        {isScorekeeper && <ScorekeeperContext fixtures={fixtures} teams={teamList} event={event} />}
       </div>
     </>
+  )
+}
+
+function ScorekeeperContext({ fixtures, teams, event }) {
+  return (
+    <aside className="sd-sk-context" aria-label="Match-day reference">
+      <div className="sd-sk-context-head">
+        <span>Match-day reference</span>
+        <small>Updates as scores publish</small>
+      </div>
+
+      <section className="sd-sk-context-section">
+        <b>Fixture progress</b>
+        <div className="sd-sk-fixture-list">
+          {fixtures.map((fixture) => {
+            const { homeTeamId, awayTeamId } = headlinePairing(fixture)
+            const home = teams.find((team) => team.id === homeTeamId)
+            const away = teams.find((team) => team.id === awayTeamId)
+            const live = fixture.soccer?.status === 'live' || fixture.netball?.status === 'live'
+            const final = fixture.soccer?.status === 'final' && fixture.netball?.status === 'final'
+            return (
+              <div className={`sd-sk-fixture${live ? ' is-live' : ''}${final ? ' is-final' : ''}`} key={fixture.id}>
+                <span>M{fixture.matchNo}</span>
+                <b>{home?.code || 'TBD'} <i>v</i> {away?.code || 'TBD'}</b>
+                <small>{live ? 'LIVE' : final ? 'DONE' : fixture.slotTime}</small>
+              </div>
+            )
+          })}
+        </div>
+      </section>
+
+      {['soccer', 'netball'].map((sport) => (
+        <CompactTable key={sport} sport={sport} fixtures={fixtures} teams={teams} event={event} />
+      ))}
+    </aside>
+  )
+}
+
+function CompactTable({ sport, fixtures, teams, event }) {
+  const rows = computeStandings(sport, fixtures, teams, event)
+  return (
+    <section className="sd-sk-context-section">
+      <b>{sport} table</b>
+      <div className="sd-sk-table">
+        {rows.map((row) => (
+          <div key={row.team.id} style={{ '--tc': row.team.colorHex }}>
+            <span>{row.rank}</span><b>{row.team.code}</b><small>{row.played} played</small><strong>{row.points} pts</strong>
+          </div>
+        ))}
+      </div>
+    </section>
   )
 }
 

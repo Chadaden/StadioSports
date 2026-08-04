@@ -686,6 +686,47 @@
 .sd-tabbar button.active { color: var(--tab-accent, var(--sd-ink)); font-weight: 800; }
 .sd-tabbar button.active::before { transform: translateX(-50%) scaleX(1); }
 
+/* ---- scorekeeper desk ------------------------------------------------------- */
+.sd-sk-context { display: none; }
+
+@media (min-width: 900px) {
+  body { background: #dfe4e8; }
+  .sd-app { max-width: none; min-height: 100vh; }
+  .sd-scroll { min-height: 100vh; }
+  .sd-header { padding-left: max(32px, calc((100vw - 1400px) / 2)); padding-right: max(32px, calc((100vw - 1400px) / 2)); }
+  .sd-sheet-page { max-width: 1400px; margin-left: auto; margin-right: auto; border-radius: 26px 26px 0 0; }
+  .sd-tabbar { max-width: none; grid-template-columns: repeat(var(--tabs, 4), minmax(120px, 160px)); justify-content: center; }
+
+  .sd-scorekeeper-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; }
+  .sd-scorekeeper-layout .sd-rail { min-width: 0; }
+  .sd-scorekeeper-layout .sd-stop { grid-template-columns: 56px minmax(0, 1fr); }
+  .sd-scorekeeper-layout .sd-ticket { padding: 22px; }
+  .sd-scorekeeper-layout .sd-sk { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .sd-scorekeeper-layout .sd-remote { margin: 0; }
+  .sd-scorekeeper-layout .sd-picker-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 300px; }
+  .sd-scorekeeper-layout .sd-picker-list .sd-picker-unknown { grid-column: 1 / -1; }
+
+  .sd-sk-context { display: block; position: sticky; top: 18px; padding: 18px; background: var(--sd-card); border: 1px solid var(--sd-line); border-radius: 18px; box-shadow: var(--sd-shadow-md); }
+  .sd-sk-context-head { display: flex; flex-direction: column; gap: 3px; padding-bottom: 14px; border-bottom: 1px solid var(--sd-line); }
+  .sd-sk-context-head span { font-family: var(--sd-anton); font-size: 20px; letter-spacing: 0.03em; text-transform: uppercase; color: var(--sd-ink); }
+  .sd-sk-context-head small { font-size: 11px; font-weight: 700; color: var(--sd-ink-soft); }
+  .sd-sk-context-section { margin-top: 18px; }
+  .sd-sk-context-section > b { display: block; margin-bottom: 9px; font-size: 10px; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; color: var(--sd-ink-faint); }
+  .sd-sk-fixture-list, .sd-sk-table { display: flex; flex-direction: column; gap: 5px; }
+  .sd-sk-fixture { display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 7px; min-height: 30px; padding: 0 7px; border-radius: 7px; background: #f5f7f8; }
+  .sd-sk-fixture > span { font-family: var(--mono, ui-monospace); font-size: 10px; font-weight: 800; color: var(--sd-ink-faint); }
+  .sd-sk-fixture b { font-size: 11.5px; color: var(--sd-ink); }
+  .sd-sk-fixture b i { font-style: normal; color: var(--sd-ink-faint); }
+  .sd-sk-fixture small { font-size: 9px; font-weight: 900; letter-spacing: .06em; color: var(--sd-ink-soft); }
+  .sd-sk-fixture.is-live { background: color-mix(in srgb, var(--sd-red) 12%, #fff); }
+  .sd-sk-fixture.is-live small { color: var(--sd-red); }
+  .sd-sk-fixture.is-final { opacity: .65; }
+  .sd-sk-table > div { display: grid; grid-template-columns: 22px 1fr auto auto; gap: 7px; align-items: center; min-height: 29px; padding: 0 7px; border-left: 3px solid var(--tc); background: #f5f7f8; }
+  .sd-sk-table span, .sd-sk-table small, .sd-sk-table strong { font-size: 10px; font-weight: 800; color: var(--sd-ink-soft); }
+  .sd-sk-table b { font-size: 11px; color: var(--sd-ink); }
+  .sd-sk-table strong { color: var(--sd-ink); }
+}
+
 /* ---- reused classic pieces inside the Stardial shell ------------------------------ */
 :root[data-skin="stardial"] .mgr-btn-primary {
   background: linear-gradient(150deg, var(--sd-ink), var(--sd-ink-2));
