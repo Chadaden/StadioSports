@@ -10,7 +10,7 @@ import {
   PHASE_LABELS, clockMinute, formatClock, isClockRunning, useSecondTick,
 } from '../../lib/clock'
 import {
-  formatDurationSeconds, isAlarmActive, sinBinRemainingSeconds, sportHomeAwayIds,
+  canPublishSport, canStartSecondHalf, formatDurationSeconds, isAlarmActive, sinBinRemainingSeconds, sportHomeAwayIds,
 } from '../../lib/matchState'
 import { LivePill, ScorePop } from './bits'
 
@@ -38,6 +38,8 @@ function SportRemote({ fixture, sport }) {
   const hasActiveSinBin = (s.cards || []).some((card) => sinBinRemainingSeconds(card) > 0)
   const now = useSecondTick(running || hasActiveSinBin)
   const alarmActive = isAlarmActive(s.clock, now)
+  const publishReady = canPublishSport(s, now)
+  const secondHalfReady = canStartSecondHalf(s, now)
   const alarmLabel = s.clock?.phase === 'h2' ? 'FULL-TIME — PAUSE NOW' : 'HALFTIME — PAUSE NOW'
 
   if (!homeTeamId || !awayTeamId) {
@@ -102,7 +104,7 @@ function SportRemote({ fixture, sport }) {
                 ) : s.clock.phase !== 'ht' ? (
                   <button className="sd-clockbtn go" onClick={() => actions.resumeClock(fixture.id, sport)}>Resume</button>
                 ) : null}
-                {!running && (s.clock.phase === 'ht' || (s.clock.phase === 'h1' && s.clock.baseSeconds > 0)) && (
+                {secondHalfReady && (
                   <button className="sd-clockbtn half" onClick={() => actions.startSecondHalf(fixture.id, sport)}>Second half</button>
                 )}
                 <button className="sd-clockbtn reset" onClick={() => {
@@ -132,15 +134,13 @@ function SportRemote({ fixture, sport }) {
             return (
               <div className="sd-goalteam" key={side}>
                 <button className="sd-goalbtn" style={{ '--tc': team?.colorHex }}
-                  onClick={() => sport === 'netball'
-                    ? actions.adjustScore(fixture.id, sport, side, 1)
-                    : logGoal(side)}>
+                  onClick={() => logGoal(side)}>
                   <b>+ Goal</b>
                   <small>{team?.name}</small>
                 </button>
                 {sport === 'netball' && (
                   <button className="sd-goalremove" disabled={!s[side]}
-                    onClick={() => actions.adjustScore(fixture.id, sport, side, -1)}>− Remove goal</button>
+                    onClick={() => actions.removeLatestGoal(fixture.id, sport, side)}>− Remove goal</button>
                 )}
               </div>
             )
@@ -193,13 +193,15 @@ function SportRemote({ fixture, sport }) {
             <button className="sd-cardbtn" onClick={() => setPicker(picker?.kind === 'card' ? null : { kind: 'card' })}>
               + Card
             </button>
-            <button className="sd-publish" onClick={() => {
-              if (window.confirm(`Publish full-time for ${sport}? This locks the score and feeds the standings/playoffs.`)) {
-                actions.publishSport(fixture.id, sport)
-              }
-            }}>
-              Publish full-time
-            </button>
+            {publishReady && (
+              <button className="sd-publish" onClick={() => {
+                if (window.confirm(`Publish full-time for ${sport}? This locks the score and feeds the standings/playoffs.`)) {
+                  actions.publishSport(fixture.id, sport)
+                }
+              }}>
+                Publish full-time
+              </button>
+            )}
           </div>
           {picker?.kind === 'card' && (
             <CardPicker fixture={fixture} sport={sport} home={home} away={away}

@@ -59,13 +59,13 @@ export function pauseClockState(sport, now = Date.now()) {
 export const resumeClockState = startClockState
 
 export function startSecondHalfState(sport, startedAt = new Date().toISOString()) {
-  const elapsed = Math.round(elapsedClockSeconds(sport.clock, Date.parse(startedAt)))
+  if (!canStartSecondHalf(sport, Date.parse(startedAt))) return sport
   return {
     ...sport,
     clock: {
       phase: 'h2',
       runningSince: startedAt,
-      baseSeconds: Math.max(HALF_SECONDS, elapsed),
+      baseSeconds: 0,
     },
     cards: resumeSinBinCards(sport.cards, startedAt, Date.parse(startedAt)),
   }
@@ -108,8 +108,58 @@ export function isAlarmActive(clock, now = Date.now()) {
   if (!clock?.runningSince) return false
   const elapsed = elapsedClockSeconds(clock, now)
   if (clock.phase === 'h1') return elapsed >= HALF_SECONDS
-  if (clock.phase === 'h2') return elapsed >= HALF_SECONDS * 2
+  if (clock.phase === 'h2') return elapsed >= HALF_SECONDS
   return false
+}
+
+export function canStartSecondHalf(sport, now = Date.now()) {
+  const clock = sport?.clock
+  return sport?.status === 'live'
+    && clock?.phase === 'h1'
+    && !clock.runningSince
+    && elapsedClockSeconds(clock, now) >= HALF_SECONDS
+}
+
+export function addGoalState(sport, side, scorer) {
+  if (side !== 'home' && side !== 'away') return sport
+  return {
+    ...sport,
+    [side]: (Number(sport[side]) || 0) + 1,
+    scorers: [...(sport.scorers || []), scorer],
+  }
+}
+
+export function removeLatestGoalState(sport, side, teamId) {
+  if (side !== 'home' && side !== 'away') return sport
+  const scorers = sport.scorers || []
+  const scorerIndex = scorers.findLastIndex((scorer) => scorer.teamId === teamId)
+  return {
+    ...sport,
+    [side]: Math.max(0, (Number(sport[side]) || 0) - 1),
+    scorers: scorerIndex < 0 ? scorers : scorers.filter((_, index) => index !== scorerIndex),
+  }
+}
+
+// A scorekeeper may publish only after the referee has ended a complete
+// second half: the clock must have reached ten minutes and be explicitly
+// paused. The overrun remains visible until that pause, so the timer itself
+// never decides when play ends.
+export function canPublishSport(sport, now = Date.now()) {
+  const clock = sport?.clock
+  return sport?.status === 'live'
+    && clock?.phase === 'h2'
+    && !clock.runningSince
+    && elapsedClockSeconds(clock, now) >= HALF_SECONDS
+}
+
+export function reopenSportState(sport) {
+  return {
+    ...sport,
+    status: 'live',
+    clock: sport.clock?.phase === 'ft'
+      ? { ...sport.clock, phase: 'h2', runningSince: null }
+      : sport.clock,
+  }
 }
 
 // Sin-bin timers move in lockstep with the game clock (§2): paused when it

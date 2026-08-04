@@ -2,15 +2,19 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
-  HALF_SECONDS,
   activateSportState,
+  addGoalState,
   addSinBinCardState,
   adjustScoreState,
   attributeScorerState,
+  canPublishSport,
+  canStartSecondHalf,
   headlinePairing,
   isAlarmActive,
   pauseClockState,
   resetClockState,
+  reopenSportState,
+  removeLatestGoalState,
   resumeClockState,
   sinBinRemainingSeconds,
   sportHomeAwayIds,
@@ -39,12 +43,21 @@ test('start, pause, and resume are separate and preserve the current half', () =
   assert.equal(resumed.clock.runningSince, '2026-07-17T10:04:00.000Z')
 })
 
-test('second half is explicit and starts from the 10-minute boundary', () => {
-  const firstHalf = { ...baseSport(), status: 'live', clock: { phase: 'h1', runningSince: null, baseSeconds: 575 } }
+test('second half starts fresh at 0:00 even if the first half overran before the referee stopped it', () => {
+  const firstHalf = { ...baseSport(), status: 'live', clock: { phase: 'h1', runningSince: null, baseSeconds: 615 } }
   const secondHalf = startSecondHalfState(firstHalf, '2026-07-17T10:15:00.000Z')
   assert.equal(secondHalf.clock.phase, 'h2')
   assert.equal(secondHalf.clock.runningSince, '2026-07-17T10:15:00.000Z')
-  assert.equal(secondHalf.clock.baseSeconds, HALF_SECONDS)
+  assert.equal(secondHalf.clock.baseSeconds, 0)
+})
+
+test('the second half cannot start before a paused first half reaches ten minutes', () => {
+  const shortFirstHalf = { ...baseSport(), status: 'live', clock: { phase: 'h1', runningSince: null, baseSeconds: 15 } }
+  assert.equal(canStartSecondHalf(shortFirstHalf), false)
+  assert.deepEqual(startSecondHalfState(shortFirstHalf, '2026-07-17T10:15:00.000Z'), shortFirstHalf)
+
+  const completeFirstHalf = { ...baseSport(), status: 'live', clock: { phase: 'h1', runningSince: null, baseSeconds: 600 } }
+  assert.equal(canStartSecondHalf(completeFirstHalf), true)
 })
 
 test('reset stops the timer and restores the first half without changing scores', () => {
@@ -58,9 +71,25 @@ test('reset stops the timer and restores the first half without changing scores'
 test('the halftime/full-time alarm fires once the half in progress reaches its own 10-minute mark, while running', () => {
   assert.equal(isAlarmActive({ phase: 'h1', runningSince: '2026-07-17T10:00:00.000Z', baseSeconds: 0 }, Date.parse('2026-07-17T10:09:59.000Z')), false)
   assert.equal(isAlarmActive({ phase: 'h1', runningSince: '2026-07-17T10:00:00.000Z', baseSeconds: 0 }, Date.parse('2026-07-17T10:10:00.000Z')), true)
-  // Full-time shares the same mechanism, at the second half's own 10-minute mark.
-  assert.equal(isAlarmActive({ phase: 'h2', runningSince: '2026-07-17T10:15:00.000Z', baseSeconds: HALF_SECONDS }, Date.parse('2026-07-17T10:24:59.000Z')), false)
-  assert.equal(isAlarmActive({ phase: 'h2', runningSince: '2026-07-17T10:15:00.000Z', baseSeconds: HALF_SECONDS }, Date.parse('2026-07-17T10:25:00.000Z')), true)
+  // Full-time fires at the second half's own 10-minute mark.
+  assert.equal(isAlarmActive({ phase: 'h2', runningSince: '2026-07-17T10:15:00.000Z', baseSeconds: 0 }, Date.parse('2026-07-17T10:24:59.000Z')), false)
+  assert.equal(isAlarmActive({ phase: 'h2', runningSince: '2026-07-17T10:15:00.000Z', baseSeconds: 0 }, Date.parse('2026-07-17T10:25:00.000Z')), true)
+})
+
+test('publishing is available only after a paused second half reaches ten minutes', () => {
+  assert.equal(canPublishSport({ ...baseSport(), status: 'live', clock: { phase: 'h1', runningSince: null, baseSeconds: 600 } }), false)
+  assert.equal(canPublishSport({ ...baseSport(), status: 'live', clock: { phase: 'h2', runningSince: '2026-07-17T10:00:00.000Z', baseSeconds: 600 } }), false)
+  assert.equal(canPublishSport({ ...baseSport(), status: 'live', clock: { phase: 'h2', runningSince: null, baseSeconds: 599 } }), false)
+  assert.equal(canPublishSport({ ...baseSport(), status: 'live', clock: { phase: 'h2', runningSince: null, baseSeconds: 615 } }), true)
+})
+
+test('reopening a final preserves its elapsed second half and allows it to be published again', () => {
+  const reopened = reopenSportState({
+    ...baseSport(), status: 'final', clock: { phase: 'ft', runningSince: null, baseSeconds: 615 },
+  })
+  assert.equal(reopened.status, 'live')
+  assert.deepEqual(reopened.clock, { phase: 'h2', runningSince: null, baseSeconds: 615 })
+  assert.equal(canPublishSport(reopened), true)
 })
 
 test('pressing Pause silences the alarm even past the 10-minute mark', () => {
@@ -139,7 +168,7 @@ test('resetting the game clock does not touch sin-bin timers', () => {
   assert.deepEqual(reset.cards, carded.cards)
 })
 
-test('direct netball scoring works for either side and never drops below zero', () => {
+test('netball score correction works for either side and never drops below zero', () => {
   const centurionFixtureSport = { ...baseSport(), status: 'live' }
   const homeGoal = adjustScoreState(centurionFixtureSport, 'home', 1)
   const awayGoal = adjustScoreState(homeGoal, 'away', 1)
@@ -148,6 +177,33 @@ test('direct netball scoring works for either side and never drops below zero', 
   assert.equal(awayGoal.home, 1)
   assert.equal(awayGoal.away, 1)
   assert.equal(clamped.home, 0)
+})
+
+test('a netball goal records the scoring side for later team-specific attribution', () => {
+  const scored = addGoalState(baseSport(), 'away', {
+    playerId: null, teamId: 'waterfall', name: null, minute: 4,
+  })
+  assert.equal(scored.home, 0)
+  assert.equal(scored.away, 1)
+  assert.deepEqual(scored.scorers, [{ playerId: null, teamId: 'waterfall', name: null, minute: 4 }])
+  assert.deepEqual(
+    attributeScorerState(scored, 0, { playerId: 'wat-07', name: 'Tayler Skye Thomas' }).scorers[0],
+    { playerId: 'wat-07', teamId: 'waterfall', name: 'Tayler Skye Thomas', minute: 4 },
+  )
+})
+
+test('removing a netball goal removes that side’s latest scorer event too', () => {
+  const sport = {
+    ...baseSport(), away: 2,
+    scorers: [
+      { teamId: 'waterfall', name: 'First scorer' },
+      { teamId: 'centurion', name: 'Home scorer' },
+      { teamId: 'waterfall', name: 'Latest scorer' },
+    ],
+  }
+  const corrected = removeLatestGoalState(sport, 'away', 'waterfall')
+  assert.equal(corrected.away, 1)
+  assert.deepEqual(corrected.scorers.map((scorer) => scorer.name), ['First scorer', 'Home scorer'])
 })
 
 test('attributing a scorer edits one entry in place without touching the score or other entries', () => {

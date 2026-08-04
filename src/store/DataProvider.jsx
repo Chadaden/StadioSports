@@ -15,9 +15,13 @@ import { db, EVENT_ID, isFirebaseConfigured } from '../firebase/config'
 import { buildSeedSnapshot, MILESTONES } from '../data/seed'
 import {
   activateSportState,
+  addGoalState,
   addSinBinCardState,
   adjustScoreState,
   attributeScorerState,
+  canPublishSport,
+  removeLatestGoalState,
+  reopenSportState,
   pauseClockState,
   resetClockState,
   resumeClockState,
@@ -179,14 +183,26 @@ export function DataProvider({ children }) {
   const actions = useMemo(() => {
     const fixtureRef = (id) => doc(db, 'events', EVENT_ID, 'fixtures', id)
 
-    // Compute the new sport object from current state, then persist whole field.
+    // Serialize every scorekeeper edit against the current fixture. A complete
+    // sport object is stored on each write, so deriving it from a stale browser
+    // snapshot could otherwise discard a quick second tap or attribution.
     const writeSport = (fixtureId, sport, mutate) => {
       const fx = (snapRef.current?.fixtures || []).find((f) => f.id === fixtureId)
       if (!fx) return
-      const nextSport = mutate({ ...fx[sport], scorers: [...(fx[sport].scorers || [])], cards: [...(fx[sport].cards || [])] })
+      const mutateSport = (fixture) => mutate({
+        ...fixture[sport],
+        scorers: [...(fixture[sport].scorers || [])],
+        cards: [...(fixture[sport].cards || [])],
+      }, fixture)
       if (isFirebaseConfigured) {
-        return updateDoc(fixtureRef(fixtureId), { [sport]: nextSport })
+        return runTransaction(db, async (transaction) => {
+          const current = await transaction.get(fixtureRef(fixtureId))
+          if (!current.exists()) return
+          const fixture = { id: current.id, ...current.data() }
+          transaction.update(fixtureRef(fixtureId), { [sport]: mutateSport(fixture) })
+        })
       }
+      const nextSport = mutateSport(fx)
       setSnapshot((prev) => ({
         ...prev,
         fixtures: prev.fixtures.map((f) => (f.id === fixtureId ? { ...f, [sport]: nextSport } : f)),
@@ -218,11 +234,7 @@ export function DataProvider({ children }) {
       // Goal: bumps the score AND logs the scorer (with the clock minute
       // captured in the UI at tap time) in one write — pushes to every viewer.
       addGoal: (fixtureId, sport, side, scorer) =>
-        writeSport(fixtureId, sport, (s) => ({
-          ...s,
-          [side]: (s[side] || 0) + 1,
-          scorers: [...s.scorers, scorer],
-        })),
+        writeSport(fixtureId, sport, (s) => addGoalState(s, side, scorer)),
 
       // +/- score corrections (also marks an upcoming match live, clock stopped)
       adjustScore: (fixtureId, sport, side, delta) =>
@@ -231,10 +243,9 @@ export function DataProvider({ children }) {
       // Undo a mis-tapped goal: drops the scorer entry AND the point in the
       // same write (two separate writes could race each other on stale state).
       removeGoal: (fixtureId, sport, index) =>
-        writeSport(fixtureId, sport, (s) => {
+        writeSport(fixtureId, sport, (s, fx) => {
           const entry = s.scorers[index]
           if (!entry) return s
-          const fx = (snapRef.current?.fixtures || []).find((f) => f.id === fixtureId)
           const { awayTeamId } = sportHomeAwayIds(fx, sport)
           const side = entry.teamId === awayTeamId ? 'away' : 'home'
           return {
@@ -242,6 +253,12 @@ export function DataProvider({ children }) {
             [side]: Math.max(0, (s[side] || 0) - 1),
             scorers: s.scorers.filter((_, i) => i !== index),
           }
+        }),
+
+      removeLatestGoal: (fixtureId, sport, side) =>
+        writeSport(fixtureId, sport, (s, fx) => {
+          const { homeTeamId, awayTeamId } = sportHomeAwayIds(fx, sport)
+          return removeLatestGoalState(s, side, side === 'away' ? awayTeamId : homeTeamId)
         }),
 
       addScorer: (fixtureId, sport, scorer) =>
@@ -264,6 +281,8 @@ export function DataProvider({ children }) {
           return runTransaction(db, async (transaction) => {
             const snapshot = await transaction.get(fixturesQuery)
             const fixtures = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
+            const fixture = fixtures.find((f) => f.id === fixtureId)
+            if (!fixture || !canPublishSport(fixture[sport])) return
             const patches = buildPublicationPatches(
               fixtureId, sport, fixtures, snapRef.current?.teams || [], snapRef.current?.event,
             )
@@ -273,6 +292,8 @@ export function DataProvider({ children }) {
         }
 
         const fixtures = snapRef.current?.fixtures || []
+        const fixture = fixtures.find((f) => f.id === fixtureId)
+        if (!fixture || !canPublishSport(fixture[sport])) return
         const patches = buildPublicationPatches(
           fixtureId, sport, fixtures, snapRef.current?.teams || [], snapRef.current?.event,
         )
@@ -288,7 +309,7 @@ export function DataProvider({ children }) {
       },
 
       reopenSport: (fixtureId, sport) =>
-        writeSport(fixtureId, sport, (s) => ({ ...s, status: 'live' })),
+        writeSport(fixtureId, sport, reopenSportState),
 
       // ---- Phase 3: Team Manager actions (§3, §6) -------------------------
       // Scoped strictly to the manager's own teamId in both live and demo mode.
