@@ -1,31 +1,47 @@
 // Stardial LIVE screen — the pocket jumbotron.
 // Same data + actions as the classic LiveScreen (read-only viewer, scorekeeper
-// may post announcements); only the presentation is new. The in-progress
-// pairing becomes a full-bleed broadcast scoreboard: team-colour wedges facing
-// off, the score enormous in the middle, clock ticking beneath. Everything
-// after it sits on a white sheet that slides over the board. No icons.
+// may post announcements); only the presentation is new. Soccer and netball
+// each get their own full board — live, else that sport's own next fixture,
+// else its own last result, else a quiet "nothing on" state — so neither sport
+// reads as more important than the other (§7). Everything after the two
+// boards sits on a white sheet that slides over them. No icons.
 
 import { useState } from 'react'
 import { useData, useTeamMap } from '../../store/DataProvider'
 import { useIsScorekeeper } from '../../store/RoleContext'
 import { PHASE_LABELS, formatClock, useClockTick } from '../../lib/clock'
+import { headlinePairing, sportHomeAwayIds } from '../../lib/matchState'
 import { SdCrest, LivePill, ScorePop, SectionTitle, ModeChip } from './bits'
+
+const SPORTS = ['soccer', 'netball']
 
 export default function SdLiveScreen() {
   const { fixtures = [], announcements = [], event, isLive } = useData()
   const teams = useTeamMap()
   const isScorekeeper = useIsScorekeeper()
 
-  const liveFx = fixtures.find((f) => f.soccer?.status === 'live' || f.netball?.status === 'live')
+  const anyLive = fixtures.some((f) => f.soccer?.status === 'live' || f.netball?.status === 'live')
   const upNext = fixtures
     .filter((f) => f.soccer?.status === 'upcoming' || f.netball?.status === 'upcoming')
-    .filter((f) => f.homeTeamId && f.awayTeamId)
+    .filter((f) => {
+      const ids = headlinePairing(f)
+      return ids.homeTeamId && ids.awayTeamId
+    })
     .slice(0, 3)
-  const hero = liveFx || upNext[0]
 
   return (
     <>
-      <Scoreboard fixture={hero} teams={teams} live={Boolean(liveFx)} eventName={event?.name} isLiveData={isLive} />
+      <section className={`sd-hero${anyLive ? ' is-live' : ''}`}>
+        <div className="sd-hero-bar">
+          <span className="sd-kicker">{event?.name || 'STADIO · Sports Day'}</span>
+          <ModeChip isLive={isLive} />
+        </div>
+        <div className="sd-twoup">
+          {SPORTS.map((sport) => (
+            <SportBoard key={sport} sport={sport} fixtures={fixtures} teams={teams} />
+          ))}
+        </div>
+      </section>
 
       <div className="sd-sheet">
         <SectionTitle right={upNext.length ? `${upNext.length} of ${fixtures.length}` : null}>
@@ -53,66 +69,66 @@ export default function SdLiveScreen() {
   )
 }
 
-/* ---- the board ----------------------------------------------------------- */
+/* ---- one sport's own board ------------------------------------------------ */
 
-// Picks the sport that deserves the big numerals: a live sport first, else the
-// first with a result, else soccer. The other sport gets the compact strip.
-function pickPrimary(fixture) {
-  const order = ['soccer', 'netball']
-  const live = order.find((s) => fixture?.[s]?.status === 'live')
-  if (live) return live
-  const scored = order.find((s) => fixture?.[s]?.status === 'final')
-  return scored || 'soccer'
-}
+// live → this sport's own next fixture → this sport's own last result → quiet
+// empty state. Resolved independently per sport, so soccer being live never
+// pushes netball into a lesser "secondary" slot, and vice versa.
+function SportBoard({ sport, fixtures, teams }) {
+  const liveFx = fixtures.find((f) => f[sport]?.status === 'live')
+  const nextFx = !liveFx && fixtures.find((f) => {
+    if (f[sport]?.status !== 'upcoming') return false
+    const ids = sportHomeAwayIds(f, sport)
+    return ids.homeTeamId && ids.awayTeamId
+  })
+  const lastFx = !liveFx && !nextFx && [...fixtures].reverse().find((f) => f[sport]?.status === 'final')
+  const fixture = liveFx || nextFx || lastFx
+  const live = Boolean(liveFx)
+  const state = liveFx ? 'live' : nextFx ? 'next' : lastFx ? 'last' : 'empty'
 
-function Scoreboard({ fixture, teams, live, eventName, isLiveData }) {
-  const home = fixture ? teams[fixture.homeTeamId] : null
-  const away = fixture ? teams[fixture.awayTeamId] : null
-  const primary = fixture ? pickPrimary(fixture) : 'soccer'
-  const secondary = primary === 'soccer' ? 'netball' : 'soccer'
-  const p = fixture?.[primary]
-  const now = useClockTick(p?.clock)
-  const showScore = p?.status === 'live' || p?.status === 'final'
-  const latest = p?.scorers?.length ? p.scorers[p.scorers.length - 1] : null
+  const { homeTeamId, awayTeamId } = fixture ? sportHomeAwayIds(fixture, sport) : {}
+  const home = fixture ? teams[homeTeamId] : null
+  const away = fixture ? teams[awayTeamId] : null
+  const s = fixture?.[sport]
+  const now = useClockTick(s?.clock)
+  const showScore = s?.status === 'live' || s?.status === 'final'
+  const latest = s?.scorers?.length ? s.scorers[s.scorers.length - 1] : null
 
   return (
-    <section className={`sd-hero${live ? ' is-live' : ''}`}>
-      <div className="sd-hero-bar">
-        <span className="sd-kicker">{eventName || 'STADIO · Sports Day'}</span>
-        <ModeChip isLive={isLiveData} />
+    <div className={`sd-board sd-board-${sport}${live ? ' is-live' : ''}`}>
+      <div className="sd-board-meta">
+        <span className={`sd-board-sport-tag sport-${sport}`}>{sport}</span>
+        {live && <LivePill compact />}
+        {!live && state === 'next' && <span className="sd-tag sd-tag-onink">UP NEXT · {fixture.slotTime}</span>}
+        {!live && state === 'last' && <span className="sd-tag sd-tag-onink">LAST RESULT</span>}
+        {fixture && <span className="sd-board-match">MATCH {fixture.matchNo}</span>}
       </div>
 
       {fixture ? (
-        <div className="sd-board">
-          <div className="sd-board-meta">
-            {live ? <LivePill /> : <span className="sd-tag sd-tag-onink">UP NEXT · {fixture.slotTime}</span>}
-            <span className="sd-board-match">MATCH {fixture.matchNo}</span>
-          </div>
-
+        <>
           <div className="sd-face">
             <TeamPanel team={home} side="home" />
             <div className="sd-mid">
               {showScore ? (
                 <div className="sd-score">
-                  <ScorePop value={p.home} />
+                  <ScorePop value={s.home} />
                   <i>–</i>
-                  <ScorePop value={p.away} />
+                  <ScorePop value={s.away} />
                 </div>
               ) : (
                 <span className="sd-vs">VS</span>
               )}
-              <span className="sd-mid-sport">{primary}</span>
             </div>
             <TeamPanel team={away} side="away" />
           </div>
 
           <div className="sd-board-sub">
-            {p?.status === 'live' && p.clock ? (
+            {s?.status === 'live' && s.clock ? (
               <span className="sd-clockpill">
-                <b>{formatClock(p.clock, now)}</b>
-                <span>· {(PHASE_LABELS[p.clock.phase] || '').toUpperCase()}</span>
+                <b>{formatClock(s.clock, now)}</b>
+                <span>· {(PHASE_LABELS[s.clock.phase] || '').toUpperCase()}</span>
               </span>
-            ) : p?.status === 'final' ? (
+            ) : s?.status === 'final' ? (
               <span className="sd-clockpill done">FULL-TIME</span>
             ) : (
               <span className="sd-clockpill idle">FIRST WHISTLE {fixture.slotTime}</span>
@@ -121,16 +137,14 @@ function Scoreboard({ fixture, teams, live, eventName, isLiveData }) {
               <span className="sd-ticker">{latest.minute ? `${latest.minute}' ` : ''}{latest.name || 'Goal'}</span>
             )}
           </div>
-
-          <AltSportStrip fixture={fixture} sport={secondary} />
-        </div>
+        </>
       ) : (
-        <div className="sd-board sd-board-empty">
-          <b>No match in progress</b>
+        <div className="sd-board-empty">
+          <b>No {sport} in progress</b>
           <span>Scores land here the moment the first whistle goes.</span>
         </div>
       )}
-    </section>
+    </div>
   )
 }
 
@@ -143,32 +157,12 @@ function TeamPanel({ team, side }) {
   )
 }
 
-// The other sport, one quiet line on the board — never an empty fake match.
-function AltSportStrip({ fixture, sport }) {
-  const s = fixture[sport]
-  const now = useClockTick(s?.clock)
-  const scored = s?.status === 'live' || s?.status === 'final'
-  return (
-    <div className="sd-alt">
-      <span className="sd-alt-name">{sport}</span>
-      {scored ? (
-        <span className="sd-alt-score">
-          {s.home}<i>–</i>{s.away}
-          {s.status === 'live' && s.clock && <em>{formatClock(s.clock, now)}</em>}
-          {s.status === 'final' && <em className="done">FT</em>}
-        </span>
-      ) : (
-        <span className="sd-alt-wait">starts after this match</span>
-      )}
-    </div>
-  )
-}
-
 /* ---- sheet content -------------------------------------------------------- */
 
 function UpNextRow({ fixture, teams }) {
-  const home = teams[fixture.homeTeamId]
-  const away = teams[fixture.awayTeamId]
+  const { homeTeamId, awayTeamId } = headlinePairing(fixture)
+  const home = teams[homeTeamId]
+  const away = teams[awayTeamId]
   return (
     <div className="sd-next">
       <span className="sd-next-time">{fixture.slotTime}</span>

@@ -7,11 +7,13 @@
 import { useData, useTeamMap } from '../../store/DataProvider'
 import { useIsScorekeeper } from '../../store/RoleContext'
 import { formatClock, useClockTick } from '../../lib/clock'
+import { headlinePairing, sportHomeAwayIds } from '../../lib/matchState'
 import { MancoReportButton } from '../../screens/MancoReport'
 import { SdCrest, StatusTag } from './bits'
 import SdSkControls from './SkControls'
 
 const ROUND_LABEL = { roundRobin: 'ROUND ROBIN', playoff: '3RD/4TH PLAYOFF', final: 'FINAL' }
+const SPORTS = ['soccer', 'netball']
 
 export default function SdFixturesScreen() {
   const { fixtures = [] } = useData()
@@ -31,8 +33,9 @@ export default function SdFixturesScreen() {
 }
 
 function FixtureTicket({ fixture, teams, showControls }) {
-  const home = teams[fixture.homeTeamId]
-  const away = teams[fixture.awayTeamId]
+  const { homeTeamId, awayTeamId } = headlinePairing(fixture)
+  const home = teams[homeTeamId]
+  const away = teams[awayTeamId]
   const status =
     fixture.soccer?.status === 'live' || fixture.netball?.status === 'live' ? 'live'
     : fixture.soccer?.status === 'final' && fixture.netball?.status === 'final' ? 'final'
@@ -64,8 +67,10 @@ function FixtureTicket({ fixture, teams, showControls }) {
         </div>
 
         <div className="sd-ticket-sports">
-          {['soccer', 'netball'].map((sport) => (
-            <SportScoreRow key={sport} sport={sport} data={fixture[sport]} viewer={!showControls} />
+          {SPORTS.map((sport) => (
+            <SportScoreRow key={sport} fixture={fixture} sport={sport} teams={teams}
+              headlineHomeTeamId={homeTeamId} headlineAwayTeamId={awayTeamId}
+              viewer={!showControls} />
           ))}
         </div>
 
@@ -75,14 +80,25 @@ function FixtureTicket({ fixture, teams, showControls }) {
   )
 }
 
-function SportScoreRow({ sport, data, viewer }) {
+function SportScoreRow({ fixture, sport, teams, headlineHomeTeamId, headlineAwayTeamId, viewer }) {
+  const data = fixture[sport]
   const now = useClockTick(data?.clock)
   const live = data?.status === 'live'
   const show = live || data?.status === 'final'
+  const { homeTeamId, awayTeamId } = sportHomeAwayIds(fixture, sport)
+  // Only the rare case where this sport's own pairing (§8) doesn't match the
+  // ticket's headline pairing needs its own label — otherwise it'd just repeat
+  // what the header already says.
+  const diverges = Boolean(homeTeamId) && Boolean(awayTeamId)
+    && (homeTeamId !== headlineHomeTeamId || awayTeamId !== headlineAwayTeamId)
+
   return (
     <>
       <div className={`sd-srow sd-srow-${sport}${live ? ' is-live' : ''}`}>
         <span className="sd-srow-name">{sport}</span>
+        {diverges && (
+          <span className="sd-srow-pair">{teams[homeTeamId]?.code || 'TBD'} <i>v</i> {teams[awayTeamId]?.code || 'TBD'}</span>
+        )}
         {live && data.clock && (
           <span className="sd-srow-clock">{formatClock(data.clock, now)}</span>
         )}

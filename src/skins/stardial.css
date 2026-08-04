@@ -46,6 +46,20 @@
   --sd-purple: #8a63a9;
   --sd-shadow-sm: 0 1px 2px rgba(16, 22, 29, 0.06), 0 2px 8px -2px rgba(16, 22, 29, 0.06);
   --sd-shadow-md: 0 14px 28px -14px rgba(16, 22, 29, 0.22), 0 4px 10px -6px rgba(16, 22, 29, 0.1);
+
+  /* STADIO Higher Education colour codes (April 2026 update) — locked team,
+     sport-panel and match-state colours. See STADIO-sports-hub-colour-system.md. */
+  --team-musgrave:    #3CB4E7;
+  --team-durbanville: #9ACA3C;
+  --team-waterfall:   #8D64AA;
+  --team-centurion:   #BF4956;
+
+  --sport-netball: #4FBFA5;
+  --sport-soccer:  #F7941D;
+
+  --card-yellow:    #FEDD00;
+  --card-red:       #E44126;
+  --alarm-halftime: #FEDD00;
 }
 
 /* ---- shell ---------------------------------------------------------------- */
@@ -133,71 +147,80 @@
 .sd-crest-sm { width: 24px; height: 24px; border-radius: 7px; font-size: 8.5px; }
 
 /* ============================================================================
-   THE BOARD — live hero scoreboard
+   THE BOARD — soccer and netball each get their own equal-weight board (§7),
+   stacked in .sd-twoup. Sized down from the old single-hero board so both
+   fit without the page feeling like two competing giants, but still well
+   above the old "secondary strip" scale (22px) it replaces.
    ============================================================================ */
-.sd-board { margin-top: 20px; }
-.sd-board-meta { display: flex; align-items: center; justify-content: space-between; }
+.sd-twoup { display: flex; flex-direction: column; gap: 16px; margin-top: 18px; }
+
+.sd-board { }
+.sd-board + .sd-board { padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.14); }
+.sd-board-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sd-board-sport-tag {
+  font-family: var(--sd-anton); font-weight: 400;
+  font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase;
+  padding: 3px 11px; border-radius: 999px; color: #fff;
+}
+.sd-board-sport-tag.sport-soccer { background: var(--sport-soccer); }
+.sd-board-sport-tag.sport-netball { background: var(--sport-netball); }
 .sd-board-match {
-  font-family: var(--sd-anton); font-size: 15px; letter-spacing: 0.08em;
+  margin-left: auto;
+  font-family: var(--sd-anton); font-size: 13px; letter-spacing: 0.08em;
   color: rgba(255, 255, 255, 0.45);
 }
 
 .sd-face {
   display: grid;
-  grid-template-columns: 1fr minmax(112px, auto) 1fr;
+  grid-template-columns: 1fr minmax(88px, auto) 1fr;
   align-items: stretch;
-  margin-top: 16px;
+  margin-top: 12px;
 }
 .sd-panel {
-  min-height: 104px;
-  border-radius: 18px;
+  min-height: 78px;
+  border-radius: 16px;
   background: linear-gradient(168deg, var(--tc) 10%, color-mix(in srgb, var(--tc) 58%, #0a0f14) 100%);
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
-  padding: 10px 8px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 10px 22px -12px rgba(0, 0, 0, 0.55);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  padding: 8px 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 8px 18px -10px rgba(0, 0, 0, 0.55);
 }
 .sd-panel b {
   font-family: var(--sd-anton); font-weight: 400;
-  font-size: 30px; line-height: 1; letter-spacing: 0.05em; color: #fff;
+  font-size: 22px; line-height: 1; letter-spacing: 0.05em; color: #fff;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 .sd-panel span {
-  font-size: 10px; font-weight: 700; color: rgba(255, 255, 255, 0.88);
-  text-align: center; line-height: 1.25;
+  font-size: 9px; font-weight: 700; color: rgba(255, 255, 255, 0.88);
+  text-align: center; line-height: 1.2;
 }
 /* parallel slashes — the two panels lean into the score like a broadcast wipe */
-.sd-panel-home { clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%); }
-.sd-panel-away { clip-path: polygon(14px 0, 100% 0, 100% 100%, 0 100%); }
+.sd-panel-home { clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%); }
+.sd-panel-away { clip-path: polygon(12px 0, 100% 0, 100% 100%, 0 100%); }
 
 .sd-mid {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 0 10px;
+  padding: 0 8px;
 }
 .sd-score {
   display: flex; align-items: baseline;
   font-family: var(--sd-anton); font-weight: 400;
-  font-size: 60px; line-height: 0.9; color: #fff;
+  font-size: 44px; line-height: 0.9; color: #fff;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   text-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
 }
-.sd-score i { font-style: normal; font-size: 30px; color: rgba(255, 255, 255, 0.4); padding: 0 5px; transform: translateY(-8px); }
-.sd-vs { font-family: var(--sd-anton); font-size: 34px; color: rgba(255, 255, 255, 0.55); letter-spacing: 0.08em; }
-.sd-mid-sport {
-  margin-top: 9px;
-  font-size: 9px; font-weight: 800; letter-spacing: 0.22em; text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.66);
-}
+.sd-score i { font-style: normal; font-size: 22px; color: rgba(255, 255, 255, 0.4); padding: 0 4px; transform: translateY(-5px); }
+.sd-vs { font-family: var(--sd-anton); font-size: 26px; color: rgba(255, 255, 255, 0.55); letter-spacing: 0.08em; }
 
-.sd-board-sub { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+.sd-board-sub { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
 .sd-clockpill {
   display: inline-flex; align-items: center; gap: 7px;
   background: rgba(255, 255, 255, 0.14);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 999px; padding: 8px 14px;
+  border-radius: 999px; padding: 7px 13px;
   color: #fff;
 }
-.sd-clockpill b { font-family: var(--mono, ui-monospace); font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sd-clockpill b { font-family: var(--mono, ui-monospace); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .sd-clockpill span { font-size: 9.5px; font-weight: 800; letter-spacing: 0.1em; color: rgba(255, 255, 255, 0.75); }
 .sd-clockpill.done { background: #fff; border-color: #fff; color: var(--sd-ink); font-size: 10.5px; font-weight: 900; letter-spacing: 0.12em; }
 .sd-clockpill.idle { background: transparent; border-color: rgba(255, 255, 255, 0.3); font-size: 10.5px; font-weight: 800; letter-spacing: 0.12em; color: rgba(255, 255, 255, 0.85); }
@@ -208,27 +231,12 @@
 }
 .sd-board-sub:not(:has(.sd-ticker)) { gap: 0; }
 
-.sd-alt {
-  margin-top: 18px; padding-top: 13px;
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-}
-.sd-alt-name {
-  font-size: 10.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.72);
-}
-.sd-alt-score { display: inline-flex; align-items: baseline; font-family: var(--sd-anton); font-size: 22px; color: #fff; }
-.sd-alt-score i { font-style: normal; color: rgba(255, 255, 255, 0.4); padding: 0 3px; font-size: 15px; }
-.sd-alt-score em { font-style: normal; font-family: var(--mono, ui-monospace); font-size: 10.5px; font-weight: 700; color: var(--sd-red-onink); margin-left: 9px; }
-.sd-alt-score em.done { color: rgba(255, 255, 255, 0.6); letter-spacing: 0.08em; }
-.sd-alt-wait { font-size: 11px; font-weight: 600; color: rgba(255, 255, 255, 0.55); }
-
 .sd-board-empty {
-  margin-top: 20px; padding: 16px 0 6px;
-  display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
+  margin-top: 12px; padding: 10px 0 4px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
 }
-.sd-board-empty b { font-size: 18px; font-weight: 800; }
-.sd-board-empty span { font-size: 12.5px; color: rgba(255, 255, 255, 0.68); max-width: 34ch; line-height: 1.55; }
+.sd-board-empty b { font-size: 16px; font-weight: 800; }
+.sd-board-empty span { font-size: 12px; color: rgba(255, 255, 255, 0.68); max-width: 34ch; line-height: 1.5; }
 
 /* ---- the sheet -------------------------------------------------------------- */
 .sd-sheet {
@@ -334,19 +342,24 @@
 .sd-ticket-side b { font-size: 13.5px; font-weight: 800; color: var(--sd-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sd-ticket-pair > i { font-style: normal; font-size: 9px; font-weight: 800; letter-spacing: 0.08em; color: var(--sd-ink-faint); flex: none; }
 
-.sd-ticket-sports { display: flex; flex-direction: column; gap: 7px; }
+.sd-ticket-sports { display: flex; flex-direction: column; gap: 9px; }
 .sd-srow {
   display: flex; align-items: center; gap: 10px;
   background: #f2f4f6; border-radius: 12px; padding: 10px 13px;
 }
+.sd-srow-soccer { background: color-mix(in srgb, var(--sport-soccer) 8%, #f2f4f6); }
+.sd-srow-netball { background: color-mix(in srgb, var(--sport-netball) 10%, #f2f4f6); }
 .sd-srow-name {
-  flex: none; padding-left: 6px;
-  font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
-  color: #575d64;
-  border-left: 3px solid var(--srow-accent, transparent);
+  flex: none;
+  padding: 4px 9px; border-radius: 999px;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+  color: #fff;
+  background: var(--srow-accent, var(--stadio-grey-secondary));
 }
-.sd-srow-soccer .sd-srow-name { --srow-accent: var(--sd-sky); }
-.sd-srow-netball .sd-srow-name { --srow-accent: var(--sd-pink); }
+.sd-srow-soccer .sd-srow-name { --srow-accent: var(--sport-soccer); }
+.sd-srow-netball .sd-srow-name { --srow-accent: var(--sport-netball); }
+.sd-srow-pair { font-size: 10.5px; font-weight: 700; color: var(--sd-ink-soft); }
+.sd-srow-pair i { font-style: normal; color: var(--sd-ink-faint); }
 .sd-srow-clock { margin-left: auto; font-family: var(--mono, ui-monospace); font-size: 11.5px; font-weight: 700; color: var(--sd-red); }
 .sd-srow-score { margin-left: auto; display: inline-flex; align-items: baseline; font-family: var(--sd-anton); font-size: 21px; color: var(--sd-ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .sd-srow-clock + .sd-srow-score { margin-left: 10px; }
@@ -369,9 +382,21 @@
   color: #fff; border-radius: 5px; padding: 2px 6px;
 }
 .sd-ev-yellow { background: #fff7db; border-color: #efe0a4; }
-.sd-ev-yellow .sd-ev-kind { background: #d9a900; color: #2e2200; }
+.sd-ev-yellow .sd-ev-kind { background: var(--card-yellow); color: #2e2200; }
 .sd-ev-red { background: #fdecec; border-color: #f2bcbc; }
-.sd-ev-red .sd-ev-kind { background: var(--sd-red); }
+.sd-ev-red .sd-ev-kind { background: var(--card-red); }
+
+/* Scorer chips carry their team's colour (§6) so it's readable at a glance
+   which side a goal belongs to. Unattributed ones (name still null) get a
+   dashed, inviting "tap me" treatment instead of a settled solid chip. */
+.sd-ev-scorer { border-left: 3px solid var(--tc, transparent); }
+.sd-ev-scorer.is-unattributed {
+  border-style: dashed; border-left-style: solid;
+  border-color: var(--tc, var(--sd-ink-faint));
+  background: color-mix(in srgb, var(--tc, #fff) 7%, #fff);
+}
+.sd-ev-label { display: inline; background: none; border: none; padding: 0; margin: 0; font: inherit; color: inherit; cursor: pointer; }
+.sd-ev-scorer.is-unattributed .sd-ev-label { color: var(--sd-ink-soft); font-style: italic; }
 .sd-ev-x {
   display: inline-grid; place-items: center;
   width: 18px; height: 18px; margin: -2px -5px -2px 1px;
@@ -382,21 +407,36 @@
 /* ============================================================================
    SCOREKEEPER REMOTE
    ============================================================================ */
-.sd-sk { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+.sd-sk { display: flex; flex-direction: column; gap: 18px; margin-top: 12px; }
 .sd-sk-note { font-size: 12px; font-weight: 600; color: var(--sd-ink-faint); padding: 8px 2px 0; }
 
+/* Panel differentiation (§4) — each sport gets a tinted panel with a coloured
+   top edge, not just a thin border accent, so soccer and netball read as
+   obviously separate without needing to know the tool first. */
 .sd-remote {
-  background: #f2f4f6; border: 1px solid #e7eaee; border-radius: 16px; padding: 12px;
+  background: #f2f4f6; border: 1px solid #e7eaee; border-top: 3px solid transparent;
+  border-radius: 16px; padding: 12px;
+}
+.sd-remote-soccer {
+  background: color-mix(in srgb, var(--sport-soccer) 8%, #f2f4f6);
+  border-color: color-mix(in srgb, var(--sport-soccer) 32%, #e7eaee);
+  border-top-color: var(--sport-soccer);
+}
+.sd-remote-netball {
+  background: color-mix(in srgb, var(--sport-netball) 10%, #f2f4f6);
+  border-color: color-mix(in srgb, var(--sport-netball) 32%, #e7eaee);
+  border-top-color: var(--sport-netball);
 }
 .sd-remote-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px; }
 .sd-remote-sport {
-  padding-left: 8px;
+  display: inline-flex; align-items: center;
+  padding: 5px 11px; border-radius: 999px;
   font-size: 11.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase;
-  color: #454b52;
-  border-left: 3px solid var(--remote-accent, transparent);
+  color: #fff;
+  background: var(--remote-accent, var(--stadio-grey-secondary));
 }
-.sd-remote-soccer .sd-remote-sport { --remote-accent: var(--sd-sky); }
-.sd-remote-netball .sd-remote-sport { --remote-accent: var(--sd-pink); }
+.sd-remote-soccer .sd-remote-sport { --remote-accent: var(--sport-soccer); }
+.sd-remote-netball .sd-remote-sport { --remote-accent: var(--sport-netball); }
 
 .sd-kickoff {
   width: 100%; min-height: 60px;
@@ -428,7 +468,17 @@
 .sd-clockbtn.reset { background: rgba(255,255,255,.14); color: #fff; }
 .sd-clockactions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 9px; }
 .sd-clockactions .sd-clockbtn { justify-content: center; padding: 0 8px; }
-.sd-half-alert { margin: 7px 0 0; padding: 8px 10px; border-radius: 10px; background: #fff3cd; border: 1px solid #eed27b; color: #684f00; font-size: 11.5px; font-weight: 900; }
+/* Halftime/full-time alarm (§1) — full-panel pulse, scorekeeper view only.
+   Distinguished from the yellow-card badge by scale + motion, not hue: the
+   whole remote flashes, not just a chip. Stops the moment Pause is pressed
+   (is-alarm is only applied while isAlarmActive() is true). */
+.sd-remote.is-alarm { animation: sd-alarm-ring 1s ease-in-out infinite; }
+.sd-alarm {
+  margin: 7px 0 0; padding: 10px 12px; border-radius: 10px;
+  background: var(--alarm-halftime); color: #3a2b00; text-align: center;
+  font-size: 12.5px; font-weight: 900; letter-spacing: 0.04em;
+  animation: sd-alarm-pulse 1s ease-in-out infinite;
+}
 
 .sd-sk-score { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 14px 0; }
 .sd-sk-code {
@@ -529,8 +579,8 @@
   font-size: 13px; font-weight: 700; color: var(--sd-ink-soft);
 }
 .sd-seg button.active { background: var(--tc, var(--sd-ink)); color: #fff; }
-.sd-seg button.active.card-y { background: #ffcd00; color: #3a2b00; }
-.sd-seg button.active.card-r { background: var(--sd-red); color: #fff; }
+.sd-seg button.active.card-y { background: var(--card-yellow); color: #3a2b00; }
+.sd-seg button.active.card-r { background: var(--card-red); color: #fff; }
 .sd-seg-sport { background: var(--sd-card); padding: 5px; margin-bottom: 16px; box-shadow: var(--sd-shadow-sm); }
 .sd-seg-sport button { min-height: 46px; }
 
@@ -666,6 +716,13 @@
 }
 .sd-pop { display: inline-block; animation: sd-pop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.4); }
 
+@keyframes sd-alarm-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+@keyframes sd-alarm-ring {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(254, 221, 0, 0); background-color: #f2f4f6; }
+  50% { box-shadow: 0 0 0 3px rgba(254, 221, 0, 0.85); background-color: color-mix(in srgb, var(--alarm-halftime) 22%, #f2f4f6); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sd-tabbar button, .sd-tabbar button::before { transition: none; }
+  .sd-alarm, .sd-remote.is-alarm { animation: none; }
 }

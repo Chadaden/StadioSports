@@ -1,21 +1,20 @@
 // Stardial scorekeeper panel — designed like a hardware remote: one glance,
-// one thumb. Logic is a faithful port of screens/ScorekeeperControls.jsx —
-// identical action calls, minute capture and picker flows — only the
-// presentation changed. Icon-free: labels are words, "+" is typography, card
-// colour is spelled out. Classic remains untouched.
+// one thumb. Icon-free: labels are words, "+" is typography, card colour is
+// spelled out. Soccer goals log instantly with an unknown scorer and are
+// attributed afterwards (§5); netball keeps direct +/- scoring. Classic
+// (screens/ScorekeeperControls.jsx) remains untouched, dead code.
 
 import { useState } from 'react'
 import { useData, useTeamMap } from '../../store/DataProvider'
 import {
-  PHASE_LABELS, clockMinute, formatClock, isClockRunning, useFirstHalfAlert, useSecondTick,
+  PHASE_LABELS, clockMinute, formatClock, isClockRunning, useSecondTick,
 } from '../../lib/clock'
-import { formatDurationSeconds, sinBinRemainingSeconds } from '../../lib/matchState'
+import {
+  formatDurationSeconds, isAlarmActive, sinBinRemainingSeconds, sportHomeAwayIds,
+} from '../../lib/matchState'
 import { LivePill, ScorePop } from './bits'
 
 export default function SdSkControls({ fixture }) {
-  if (!fixture.homeTeamId || !fixture.awayTeamId) {
-    return <div className="sd-sk-note">Teams set on the day from the standings.</div>
-  }
   return (
     <div className="sd-sk">
       {['soccer', 'netball'].map((sport) => (
@@ -29,13 +28,28 @@ function SportRemote({ fixture, sport }) {
   const { actions } = useData()
   const teams = useTeamMap()
   const s = fixture[sport]
-  const home = teams[fixture.homeTeamId]
-  const away = teams[fixture.awayTeamId]
-  const [picker, setPicker] = useState(null) // { kind:'goal', side, minute } | { kind:'card' } | null
+  // Round-robin fixtures share the fixed printed pairing; the playoff/final
+  // slots (§8) can seat different teams per sport once auto-populated.
+  const { homeTeamId, awayTeamId } = sportHomeAwayIds(fixture, sport)
+  const home = teams[homeTeamId]
+  const away = teams[awayTeamId]
+  const [picker, setPicker] = useState(null) // { kind:'attribute', index } | { kind:'card' } | null
   const running = isClockRunning(s.clock)
   const hasActiveSinBin = (s.cards || []).some((card) => sinBinRemainingSeconds(card) > 0)
   const now = useSecondTick(running || hasActiveSinBin)
-  const firstHalfReached = useFirstHalfAlert(s.clock, now)
+  const alarmActive = isAlarmActive(s.clock, now)
+  const alarmLabel = s.clock?.phase === 'h2' ? 'FULL-TIME — PAUSE NOW' : 'HALFTIME — PAUSE NOW'
+
+  if (!homeTeamId || !awayTeamId) {
+    return (
+      <div className={`sd-remote sd-remote-${sport}`}>
+        <div className="sd-remote-head">
+          <span className="sd-remote-sport">{sport}</span>
+        </div>
+        <div className="sd-sk-note">Teams set on the day from the standings.</div>
+      </div>
+    )
+  }
 
   if (s.status === 'upcoming') {
     return (
@@ -53,12 +67,20 @@ function SportRemote({ fixture, sport }) {
   }
 
   const locked = s.status === 'final'
-  // Reads the real clock at tap time, not the 1s render tick.
-  const openGoalPicker = (side) =>
-    setPicker({ kind: 'goal', side, minute: s.clock ? clockMinute(s.clock) : null })
+  // Instant goal logging (§5): the tap itself is the whole write — score moves
+  // and an "unknown scorer" entry is logged in the same action, both live
+  // immediately. Attributing a name is a separate step afterwards (below),
+  // never something that blocks or delays this tap.
+  const logGoal = (side) => {
+    const team = side === 'home' ? home : away
+    actions.addGoal(fixture.id, sport, side, {
+      playerId: null, teamId: team?.id ?? null, name: null,
+      minute: s.clock ? clockMinute(s.clock) : null,
+    })
+  }
 
   return (
-    <div className={`sd-remote sd-remote-${sport}${locked ? ' is-locked' : ''}`}>
+    <div className={`sd-remote sd-remote-${sport}${locked ? ' is-locked' : ''}${alarmActive && !locked ? ' is-alarm' : ''}`}>
       <div className="sd-remote-head">
         <span className="sd-remote-sport">{sport}</span>
         {locked ? <span className="sd-tag sd-tag-final">FULL-TIME</span> : <LivePill />}
@@ -91,7 +113,7 @@ function SportRemote({ fixture, sport }) {
               </div>
             )}
           </div>
-          {firstHalfReached && !locked && <div className="sd-half-alert">10:00 reached — pause when the whistle goes.</div>}
+          {alarmActive && !locked && <div className="sd-alarm">{alarmLabel}</div>}
         </>
       )}
 
@@ -112,7 +134,7 @@ function SportRemote({ fixture, sport }) {
                 <button className="sd-goalbtn" style={{ '--tc': team?.colorHex }}
                   onClick={() => sport === 'netball'
                     ? actions.adjustScore(fixture.id, sport, side, 1)
-                    : openGoalPicker(side)}>
+                    : logGoal(side)}>
                   <b>+ Goal</b>
                   <small>{team?.name}</small>
                 </button>
@@ -126,10 +148,10 @@ function SportRemote({ fixture, sport }) {
         </div>
       )}
 
-      {sport === 'soccer' && picker?.kind === 'goal' && (
-        <GoalPicker
-          fixture={fixture} sport={sport} side={picker.side} minute={picker.minute}
-          team={picker.side === 'home' ? home : away}
+      {picker?.kind === 'attribute' && (
+        <AttributePicker
+          fixture={fixture} sport={sport} index={picker.index}
+          team={teams[s.scorers[picker.index]?.teamId]}
           onDone={() => setPicker(null)}
         />
       )}
@@ -137,8 +159,15 @@ function SportRemote({ fixture, sport }) {
       {(s.scorers?.length > 0 || s.cards?.length > 0) && (
         <div className="sd-events">
           {s.scorers.map((sc, i) => (
-            <span className="sd-ev" key={`s${i}`}>
-              {sc.minute ? `${sc.minute}' ` : ''}{sc.name || 'Goal'}
+            <span className={`sd-ev sd-ev-scorer${sc.name == null ? ' is-unattributed' : ''}`}
+              key={`s${i}`} style={{ '--tc': teams[sc.teamId]?.colorHex }}>
+              {locked ? (
+                <span className="sd-ev-label">{sc.minute ? `${sc.minute}' ` : ''}{sc.name || 'Goal'}</span>
+              ) : (
+                <button className="sd-ev-label" onClick={() => setPicker({ kind: 'attribute', index: i })}>
+                  {sc.minute ? `${sc.minute}' ` : ''}{sc.name || 'Who scored?'}
+                </button>
+              )}
               {!locked && (
                 <button className="sd-ev-x" aria-label="Remove goal"
                   onClick={() => actions.removeGoal(fixture.id, sport, i)}>×</button>
@@ -164,7 +193,11 @@ function SportRemote({ fixture, sport }) {
             <button className="sd-cardbtn" onClick={() => setPicker(picker?.kind === 'card' ? null : { kind: 'card' })}>
               + Card
             </button>
-            <button className="sd-publish" onClick={() => actions.publishSport(fixture.id, sport)}>
+            <button className="sd-publish" onClick={() => {
+              if (window.confirm(`Publish full-time for ${sport}? This locks the score and feeds the standings/playoffs.`)) {
+                actions.publishSport(fixture.id, sport)
+              }
+            }}>
               Publish full-time
             </button>
           </div>
@@ -182,23 +215,24 @@ function SportRemote({ fixture, sport }) {
   )
 }
 
-// Goal flow: the minute is already captured — just pick who scored.
-function GoalPicker({ fixture, sport, side, minute, team, onDone }) {
+// Attribution flow (§5): the goal already went live on tap — this only fills
+// in who scored, editing that one scorers[] entry in place. Never creates a
+// goal or touches the score, so it's just as fine to cancel out of as to
+// finish — the score was never waiting on it.
+function AttributePicker({ fixture, sport, index, team, onDone }) {
   const { actions } = useData()
   const roster = (team?.players || []).filter((p) => p.sport === sport && p.role === 'player')
   const [freeText, setFreeText] = useState('')
 
   const commit = (name, playerId = null) => {
-    actions.addGoal(fixture.id, sport, side, {
-      playerId, teamId: team?.id ?? null, name, minute,
-    })
+    actions.attributeScorer(fixture.id, sport, index, { playerId, name })
     onDone()
   }
 
   return (
     <div className="sd-picker">
       <div className="sd-picker-title" style={{ '--tc': team?.colorHex }}>
-        <b>{team?.code}</b> goal{minute ? ` · ${minute}'` : ''} — who scored?
+        <b>{team?.code}</b> goal — who scored?
       </div>
       {roster.length > 0 ? (
         <div className="sd-picker-list">
@@ -207,12 +241,12 @@ function GoalPicker({ fixture, sport, side, minute, team, onDone }) {
               {p.shirtNumber ? `#${p.shirtNumber} ` : ''}{p.firstName} {p.surname}{p.isGK ? ' (GK)' : ''}
             </button>
           ))}
-          <button className="sd-picker-unknown" onClick={() => commit(null)}>Unknown / own goal</button>
+          <button className="sd-picker-unknown" onClick={() => commit('Unknown scorer')}>Unknown / own goal</button>
         </div>
       ) : (
         <div className="sd-picker-free">
           <input placeholder="Player name" value={freeText} onChange={(e) => setFreeText(e.target.value)} />
-          <button onClick={() => commit(freeText.trim() || null)}>Add</button>
+          <button onClick={() => commit(freeText.trim() || 'Unknown scorer')}>Add</button>
         </div>
       )}
       <button className="sd-picker-cancel" onClick={onDone}>Cancel</button>
@@ -224,7 +258,7 @@ function GoalPicker({ fixture, sport, side, minute, team, onDone }) {
 function CardPicker({ fixture, sport, home, away, onDone }) {
   const { actions } = useData()
   const s = fixture[sport]
-  const [teamId, setTeamId] = useState(fixture.homeTeamId)
+  const [teamId, setTeamId] = useState(home?.id)
   const [freeText, setFreeText] = useState('')
   const [minute, setMinute] = useState(s.clock ? String(clockMinute(s.clock)) : '')
   const [cardType, setCardType] = useState('yellow')

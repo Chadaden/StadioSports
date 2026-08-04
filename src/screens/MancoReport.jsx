@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useData } from '../store/DataProvider'
 import { useIsScorekeeper } from '../store/RoleContext'
+import { headlinePairing } from '../lib/matchState'
 import { computeStandings } from '../lib/standings'
 
 // MANCO report — one-tap assembly + PDF export (build spec §8, Phase 4).
@@ -35,8 +36,9 @@ function MancoModal({ onClose }) {
   const allScorers = []
   const allCards = []
   for (const fx of played) {
-    const home = teams.find((t) => t.id === fx.homeTeamId)
-    const away = teams.find((t) => t.id === fx.awayTeamId)
+    const { homeTeamId, awayTeamId } = headlinePairing(fx)
+    const home = teams.find((t) => t.id === homeTeamId)
+    const away = teams.find((t) => t.id === awayTeamId)
     for (const sport of ['soccer', 'netball']) {
       const s = fx[sport]
       if (!s) continue
@@ -82,8 +84,9 @@ function MancoModal({ onClose }) {
       // Results
       line('2. Match results', 13, true)
       for (const fx of played) {
-        const h = teams.find((t) => t.id === fx.homeTeamId)
-        const a = teams.find((t) => t.id === fx.awayTeamId)
+        const { homeTeamId, awayTeamId } = headlinePairing(fx)
+        const h = teams.find((t) => t.id === homeTeamId)
+        const a = teams.find((t) => t.id === awayTeamId)
         const pair = `${h?.code ?? 'TBD'} vs ${a?.code ?? 'TBD'}`
         const soc = fx.soccer?.status === 'final' ? `Soccer ${fx.soccer.home}–${fx.soccer.away}` : ''
         const net = fx.netball?.status === 'final' ? `Netball ${fx.netball.home}–${fx.netball.away}` : ''
@@ -150,8 +153,9 @@ function MancoModal({ onClose }) {
           <ReportSection title="Results">
             {played.length === 0 && <div className="muted">No completed matches yet.</div>}
             {played.map((fx) => {
-              const h = teams.find((t) => t.id === fx.homeTeamId)
-              const a = teams.find((t) => t.id === fx.awayTeamId)
+              const { homeTeamId, awayTeamId } = headlinePairing(fx)
+              const h = teams.find((t) => t.id === homeTeamId)
+              const a = teams.find((t) => t.id === awayTeamId)
               return (
                 <div className="rp-row" key={fx.id}>
                   <span>M{fx.matchNo} {h?.code} vs {a?.code}</span>
