@@ -466,6 +466,8 @@
 .sd-clockbtn.go { background: var(--sd-lime); color: #1d2b07; }
 .sd-clockbtn.half { background: var(--sd-sky); color: #08243a; }
 .sd-clockbtn.reset { background: rgba(255,255,255,.14); color: #fff; }
+.sd-clockbtn.reset.is-armed { background: var(--sd-red); color: #fff; }
+.sd-clockbtn.cancel { background: rgba(255,255,255,.06); color: rgba(255,255,255,.65); }
 .sd-clockactions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 9px; }
 .sd-clockactions .sd-clockbtn { justify-content: center; padding: 0 8px; }
 /* Halftime/full-time alarm (§1) — full-panel pulse, scorekeeper view only.
@@ -523,6 +525,7 @@
   background: linear-gradient(150deg, var(--sd-ink), var(--sd-ink-2));
   color: #fff; font-size: 13px; font-weight: 800;
 }
+.sd-publish.is-armed { background: linear-gradient(150deg, var(--sd-red), #9c0f15); }
 .sd-reopen {
   width: 100%; min-height: 44px; margin-top: 10px;
   border: 1px solid var(--sd-line); border-radius: 14px; background: var(--sd-card);

@@ -34,6 +34,9 @@ function SportRemote({ fixture, sport }) {
   const home = teams[homeTeamId]
   const away = teams[awayTeamId]
   const [picker, setPicker] = useState(null) // { kind:'attribute', index } | { kind:'card' } | null
+  // Two-tap in-app confirm for Reset/Publish (replaces window.confirm, which
+  // silently no-ops on tablet/PWA contexts that suppress native dialogs).
+  const [armed, setArmed] = useState(null) // 'reset' | 'publish' | null
   const running = isClockRunning(s.clock)
   const hasActiveSinBin = (s.cards || []).some((card) => sinBinRemainingSeconds(card) > 0)
   const now = useSecondTick(running || hasActiveSinBin)
@@ -107,11 +110,17 @@ function SportRemote({ fixture, sport }) {
                 {secondHalfReady && (
                   <button className="sd-clockbtn half" onClick={() => actions.startSecondHalf(fixture.id, sport)}>Second half</button>
                 )}
-                <button className="sd-clockbtn reset" onClick={() => {
-                  if (window.confirm('Reset this timer to 0:00 and the first half? Scores and events will remain.')) {
-                    actions.resetClock(fixture.id, sport)
-                  }
-                }}>Reset</button>
+                {armed === 'reset' ? (
+                  <>
+                    <button className="sd-clockbtn reset is-armed"
+                      onClick={() => { actions.resetClock(fixture.id, sport); setArmed(null) }}>
+                      Confirm reset
+                    </button>
+                    <button className="sd-clockbtn cancel" onClick={() => setArmed(null)}>Cancel</button>
+                  </>
+                ) : (
+                  <button className="sd-clockbtn reset" onClick={() => setArmed('reset')}>Reset</button>
+                )}
               </div>
             )}
           </div>
@@ -194,13 +203,19 @@ function SportRemote({ fixture, sport }) {
               + Card
             </button>
             {publishReady && (
-              <button className="sd-publish" onClick={() => {
-                if (window.confirm(`Publish full-time for ${sport}? This locks the score and feeds the standings/playoffs.`)) {
-                  actions.publishSport(fixture.id, sport)
-                }
-              }}>
-                Publish full-time
-              </button>
+              armed === 'publish' ? (
+                <>
+                  <button className="sd-publish is-armed"
+                    onClick={() => { actions.publishSport(fixture.id, sport); setArmed(null) }}>
+                    Confirm & lock score
+                  </button>
+                  <button className="sd-cardbtn" onClick={() => setArmed(null)}>Cancel</button>
+                </>
+              ) : (
+                <button className="sd-publish" onClick={() => setArmed('publish')}>
+                  Publish full-time
+                </button>
+              )
             )}
           </div>
           {picker?.kind === 'card' && (
