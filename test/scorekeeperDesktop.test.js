@@ -11,6 +11,7 @@ test('the scorekeeper has a laptop layout with parallel remotes and a persistent
   ])
   assert.match(fixtures, /ScorekeeperContext/)
   assert.match(fixtures, /Match-day reference/)
+  assert.match(fixtures, /standingsFixtures=\{fixtures\}/)
   assert.match(styles, /@media \(min-width: 900px\)/)
   assert.match(styles, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/)
   assert.match(styles, /position: sticky/)

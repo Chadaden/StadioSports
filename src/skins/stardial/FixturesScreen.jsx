@@ -42,13 +42,13 @@ export default function SdFixturesScreen() {
             </div>
           </details>
         )}
-        {isScorekeeper && <ScorekeeperContext fixtures={active} teams={teamList} event={event} />}
+        {isScorekeeper && <ScorekeeperContext fixtures={active} standingsFixtures={fixtures} teams={teamList} event={event} />}
       </div>
     </>
   )
 }
 
-function ScorekeeperContext({ fixtures, teams, event }) {
+function ScorekeeperContext({ fixtures, standingsFixtures, teams, event }) {
   return (
     <aside className="sd-sk-context" aria-label="Match-day reference">
       <div className="sd-sk-context-head">
@@ -77,7 +77,7 @@ function ScorekeeperContext({ fixtures, teams, event }) {
       </section>
 
       {['soccer', 'netball'].map((sport) => (
-        <CompactTable key={sport} sport={sport} fixtures={fixtures} teams={teams} event={event} />
+        <CompactTable key={sport} sport={sport} fixtures={standingsFixtures} teams={teams} event={event} />
       ))}
     </aside>
   )
