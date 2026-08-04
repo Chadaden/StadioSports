@@ -93,6 +93,35 @@ export function projectBracket(sport, fixtures, teams, event) {
   }
 }
 
+/**
+ * True once every round-robin fixture has a final result for this sport (§8)
+ * — the trigger for auto-populating that sport's playoff/final pairings.
+ * @param {string} sport - 'soccer' | 'netball'
+ */
+export function roundRobinComplete(sport, fixtures) {
+  const roundRobinFixtures = fixtures.filter((fx) => fx.round === 'roundRobin')
+  return roundRobinFixtures.length > 0
+    && roundRobinFixtures.every((fx) => fx[sport]?.status === 'final')
+}
+
+/**
+ * Auto-calculated playoff/final team ids for one sport (§8), once its own
+ * round-robin is complete — soccer and netball run separate tables, so each
+ * sport's pairing is computed and returned independently. 1st vs 2nd contest
+ * the final; 3rd vs 4th contest the playoff. Returns null until
+ * roundRobinComplete(sport, fixtures).
+ * @param {string} sport - 'soccer' | 'netball'
+ * @returns {{ final: {homeTeamId, awayTeamId}, playoff: {homeTeamId, awayTeamId} } | null}
+ */
+export function computeAutoPairings(sport, fixtures, teams, event) {
+  if (!roundRobinComplete(sport, fixtures)) return null
+  const table = computeStandings(sport, fixtures, teams, event)
+  return {
+    final: { homeTeamId: table[0]?.team.id ?? null, awayTeamId: table[1]?.team.id ?? null },
+    playoff: { homeTeamId: table[2]?.team.id ?? null, awayTeamId: table[3]?.team.id ?? null },
+  }
+}
+
 // headToHead[winner][loser] = number of wins between that pair (round-robin only).
 function buildHeadToHead(sport, fixtures) {
   const hh = {}

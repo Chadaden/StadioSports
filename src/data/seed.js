@@ -42,14 +42,16 @@ export const event = {
 }
 
 // ---------- teams (events/{eventId}/teams/{teamId}) ----------
-// Colours snapped to the STADIO spectrum (§4) — provisional, one-line swap.
+// Colours locked to the STADIO Higher Education colour codes (April 2026 update,
+// STADIO-sports-hub-colour-system.md §2) — fixed per school, not home/away, and
+// reserved for team identity only (never reused for sport-panel accents).
 export const teams = [
   {
     id: 'centurion',
     name: 'Centurion',
     code: 'CEN',
-    colorKey: 'sky',
-    colorHex: '#3BB1E5',
+    colorKey: 'law-rose',
+    colorHex: '#BF4956',
     type: 'host',
     travel: null,
     rosterLoaded: true,
@@ -58,8 +60,8 @@ export const teams = [
     id: 'musgrave',
     name: 'Musgrave',
     code: 'MUS',
-    colorKey: 'lime',
-    colorHex: '#96C93E',
+    colorKey: 'blue',
+    colorHex: '#3CB4E7',
     type: 'travel',
     travel: {
       fromAirport: 'King Shaka International',
@@ -72,8 +74,8 @@ export const teams = [
     id: 'durbanville',
     name: 'Durbanville',
     code: 'DUR',
-    colorKey: 'red',
-    colorHex: '#ED1C24',
+    colorKey: 'green',
+    colorHex: '#9ACA3C',
     type: 'travel',
     travel: {
       fromAirport: 'Cape Town International',
@@ -87,7 +89,7 @@ export const teams = [
     name: 'Waterfall',
     code: 'WAT',
     colorKey: 'purple',
-    colorHex: '#8A63A9',
+    colorHex: '#8D64AA',
     type: 'local',
     travel: null,
     rosterLoaded: true,
@@ -180,10 +182,19 @@ export const players = {
 
 // ---------- fixtures (events/{eventId}/fixtures/{fixtureId}) ----------
 // Round-robin (m1–m6) → 3rd/4th playoff (m7) → final (m8), pairings and slot
-// times from the sheet's Program tab. Same pairing drives both sports.
+// times from the sheet's Program tab. Round-robin pairings are fixed and
+// shared by both sports (fixture-level homeTeamId/awayTeamId below). The
+// playoff/final slots instead carry a per-sport homeTeamId/awayTeamId (null
+// until auto-populated, see lib/standings.js computeAutoPairings), since
+// soccer and netball run separate round-robin tables and can seat different
+// teams in the same match slot (§8). Screens resolve the effective pairing
+// for a sport via lib/matchState.js sportHomeAwayIds().
 // `clock` powers the scorekeeper match timer (see lib/clock.js): null until
 // kick-off, then { phase, runningSince, baseSeconds }.
-const blankSport = () => ({ status: 'upcoming', home: 0, away: 0, scorers: [], cards: [], clock: null })
+const blankSport = () => ({
+  status: 'upcoming', home: 0, away: 0, scorers: [], cards: [], clock: null,
+  homeTeamId: null, awayTeamId: null,
+})
 
 export const fixtures = [
   { id: 'm1', matchNo: 1, slotTime: '10:30', round: 'roundRobin', homeTeamId: 'centurion', awayTeamId: 'waterfall', soccer: blankSport(), netball: blankSport() },

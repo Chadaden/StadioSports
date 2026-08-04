@@ -18,12 +18,15 @@ import {
   activateSportState,
   addSinBinCardState,
   adjustScoreState,
+  attributeScorerState,
   pauseClockState,
   resetClockState,
   resumeClockState,
+  sportHomeAwayIds,
   startClockState,
   startSecondHalfState,
 } from '../lib/matchState'
+import { computeAutoPairings } from '../lib/standings'
 import { useRole } from './RoleContext'
 
 const DataContext = createContext(null)
@@ -233,7 +236,8 @@ export function DataProvider({ children }) {
           const entry = s.scorers[index]
           if (!entry) return s
           const fx = (snapRef.current?.fixtures || []).find((f) => f.id === fixtureId)
-          const side = entry.teamId === fx?.awayTeamId ? 'away' : 'home'
+          const { awayTeamId } = sportHomeAwayIds(fx, sport)
+          const side = entry.teamId === awayTeamId ? 'away' : 'home'
           return {
             ...s,
             [side]: Math.max(0, (s[side] || 0) - 1),
@@ -244,18 +248,69 @@ export function DataProvider({ children }) {
       addScorer: (fixtureId, sport, scorer) =>
         writeSport(fixtureId, sport, (s) => ({ ...s, scorers: [...s.scorers, scorer] })),
 
+      // Deferred attribution (§5): fills in the name/playerId on one already-
+      // logged (possibly "unknown") scorers[] entry. Never touches the score.
+      attributeScorer: (fixtureId, sport, index, attribution) =>
+        writeSport(fixtureId, sport, (s) => attributeScorerState(s, index, attribution)),
+
       addCard: (fixtureId, sport, card) =>
         writeSport(fixtureId, sport, (s) => addSinBinCardState(s, card)),
 
-      // publish (live → final, locks, clock stops) / reopen (final → live)
-      publishSport: (fixtureId, sport) =>
-        writeSport(fixtureId, sport, (s) => ({
-          ...s,
+      // Publish (live → final, locks, clock stops). When this completes a
+      // sport's round-robin (§8), also auto-populates that sport's playoff
+      // (3rd/4th) and final pairings from the resulting standings, in the
+      // same write — never touching the other sport's pairing or one that's
+      // already set to the same teams.
+      publishSport: (fixtureId, sport) => {
+        const fixtures = snapRef.current?.fixtures || []
+        const fx = fixtures.find((f) => f.id === fixtureId)
+        if (!fx) return
+
+        const publishedSport = {
+          ...fx[sport],
+          scorers: [...(fx[sport].scorers || [])],
+          cards: [...(fx[sport].cards || [])],
           status: 'final',
-          clock: s.clock
-            ? { phase: 'ft', runningSince: null, baseSeconds: Math.round(elapsedSeconds(s.clock)) }
+          clock: fx[sport].clock
+            ? { phase: 'ft', runningSince: null, baseSeconds: Math.round(elapsedSeconds(fx[sport].clock)) }
             : null,
-        })),
+        }
+        const patches = [{ id: fixtureId, patch: publishedSport }]
+
+        // Only a round-robin result can newly complete the round-robin table.
+        if (fx.round === 'roundRobin') {
+          const nextFixtures = fixtures.map((f) => (f.id === fixtureId ? { ...f, [sport]: publishedSport } : f))
+          const pairings = computeAutoPairings(sport, nextFixtures, snapRef.current?.teams || [], snapRef.current?.event)
+          if (pairings) {
+            const playoffFx = fixtures.find((f) => f.round === 'playoff')
+            const finalFx = fixtures.find((f) => f.round === 'final')
+            const isSet = (target, pairing) =>
+              target?.[sport]?.homeTeamId === pairing.homeTeamId && target?.[sport]?.awayTeamId === pairing.awayTeamId
+            if (playoffFx && !isSet(playoffFx, pairings.playoff)) {
+              patches.push({ id: playoffFx.id, patch: { ...playoffFx[sport], ...pairings.playoff } })
+            }
+            if (finalFx && !isSet(finalFx, pairings.final)) {
+              patches.push({ id: finalFx.id, patch: { ...finalFx[sport], ...pairings.final } })
+            }
+          }
+        }
+
+        if (isFirebaseConfigured) {
+          if (patches.length === 1) return updateDoc(fixtureRef(fixtureId), { [sport]: publishedSport })
+          const batch = writeBatch(db)
+          for (const { id, patch } of patches) batch.update(fixtureRef(id), { [sport]: patch })
+          return batch.commit()
+        }
+
+        setSnapshot((prev) => ({
+          ...prev,
+          fixtures: prev.fixtures.map((f) => {
+            const found = patches.find((p) => p.id === f.id)
+            return found ? { ...f, [sport]: found.patch } : f
+          }),
+        }))
+      },
+
       reopenSport: (fixtureId, sport) =>
         writeSport(fixtureId, sport, (s) => ({ ...s, status: 'live' })),
 

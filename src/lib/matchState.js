@@ -39,6 +39,7 @@ export function startClockState(sport, startedAt = new Date().toISOString()) {
       phase: clock.phase === 'paused' ? 'h2' : clock.phase,
       runningSince: startedAt,
     },
+    cards: resumeSinBinCards(sport.cards, startedAt, Date.parse(startedAt)),
   }
 }
 
@@ -51,6 +52,7 @@ export function pauseClockState(sport, now = Date.now()) {
       runningSince: null,
       baseSeconds: Math.round(elapsedClockSeconds(sport.clock, now)),
     },
+    cards: pauseSinBinCards(sport.cards, now),
   }
 }
 
@@ -65,6 +67,7 @@ export function startSecondHalfState(sport, startedAt = new Date().toISOString()
       runningSince: startedAt,
       baseSeconds: Math.max(HALF_SECONDS, elapsed),
     },
+    cards: resumeSinBinCards(sport.cards, startedAt, Date.parse(startedAt)),
   }
 }
 
@@ -82,12 +85,63 @@ export function adjustScoreState(sport, side, delta) {
   }
 }
 
-export function shouldAlertFirstHalfEnd(clock, now = Date.now()) {
-  return clock?.phase === 'h1' && elapsedClockSeconds(clock, now) >= HALF_SECONDS
+// Deferred scorer attribution (§5, soccer): the goal itself already went live
+// on tap via addGoal with an unknown/null scorer. This only ever edits the
+// name/playerId on one already-logged scorers[] entry in place — it never
+// touches the score, and any entry (not just the most recent) stays
+// individually attributable.
+export function attributeScorerState(sport, index, attribution) {
+  const scorers = sport.scorers || []
+  if (!scorers[index]) return sport
+  return {
+    ...sport,
+    scorers: scorers.map((sc, i) => (i === index ? { ...sc, ...attribution } : sc)),
+  }
+}
+
+// Halftime AND full-time share one mechanism (§1): once the half in progress
+// reaches its 10-minute mark the scorekeeper panel flashes, and stays flashing
+// until Pause is pressed — which is exactly when the clock stops running, so
+// silencing the alarm falls straight out of `runningSince` going null. The
+// clock itself is never frozen at 10:00; it keeps counting while it flashes.
+export function isAlarmActive(clock, now = Date.now()) {
+  if (!clock?.runningSince) return false
+  const elapsed = elapsedClockSeconds(clock, now)
+  if (clock.phase === 'h1') return elapsed >= HALF_SECONDS
+  if (clock.phase === 'h2') return elapsed >= HALF_SECONDS * 2
+  return false
+}
+
+// Sin-bin timers move in lockstep with the game clock (§2): paused when it
+// pauses, resumed when it resumes — mirroring the game clock's own
+// baseSeconds/runningSince split so a paused card simply stops accruing
+// elapsed time instead of continuing to tick against the wall clock. They stay
+// independent of the game clock's own phase/reset: resetClockState below
+// deliberately never touches `cards`.
+function pauseSinBinCards(cards, now) {
+  return (cards || []).map((card) => {
+    if (!card.sinBinRunningSince) return card
+    const startedAt = Date.parse(card.sinBinRunningSince)
+    const elapsed = Number.isFinite(startedAt) ? Math.max(0, (now - startedAt) / 1000) : 0
+    return {
+      ...card,
+      sinBinBaseSeconds: (Number(card.sinBinBaseSeconds) || 0) + elapsed,
+      sinBinRunningSince: null,
+    }
+  })
+}
+
+function resumeSinBinCards(cards, startedAt, now) {
+  return (cards || []).map((card) => {
+    if (card.sinBinRunningSince || !('sinBinBaseSeconds' in card)) return card
+    if (sinBinRemainingSeconds(card, now) <= 0) return card
+    return { ...card, sinBinRunningSince: startedAt }
+  })
 }
 
 export function addSinBinCardState(sport, card, issuedAt = new Date().toISOString()) {
   const sinBinSeconds = CARD_SIN_BIN_SECONDS[card.type] || 0
+  const gameRunning = Boolean(sport.clock?.runningSince)
   return {
     ...sport,
     cards: [
@@ -95,8 +149,9 @@ export function addSinBinCardState(sport, card, issuedAt = new Date().toISOStrin
       {
         ...card,
         issuedAt,
-        sinBinStartedAt: issuedAt,
         sinBinSeconds,
+        sinBinBaseSeconds: 0,
+        sinBinRunningSince: gameRunning ? issuedAt : null,
       },
     ],
   }
@@ -104,10 +159,51 @@ export function addSinBinCardState(sport, card, issuedAt = new Date().toISOStrin
 
 export function sinBinRemainingSeconds(card, now = Date.now()) {
   const duration = Number(card?.sinBinSeconds) || CARD_SIN_BIN_SECONDS[card?.type] || 0
+  if (!duration) return 0
+
+  // Pause-aware shape (§2) — remaining derives from banked seconds plus the
+  // current running segment, if any.
+  if (card && 'sinBinBaseSeconds' in card) {
+    const base = Number(card.sinBinBaseSeconds) || 0
+    const startedAt = card.sinBinRunningSince ? Date.parse(card.sinBinRunningSince) : null
+    const running = Number.isFinite(startedAt) ? Math.max(0, (now - startedAt) / 1000) : 0
+    return Math.min(duration, Math.max(0, Math.ceil(duration - (base + running))))
+  }
+
+  // Legacy shape — continuous wall-clock countdown from issue time.
   const rawStartedAt = card?.sinBinStartedAt ?? card?.issuedAt
   const startedAt = typeof rawStartedAt === 'number' ? rawStartedAt : Date.parse(rawStartedAt)
-  if (!duration || !Number.isFinite(startedAt)) return 0
+  if (!Number.isFinite(startedAt)) return 0
   return Math.min(duration, Math.max(0, Math.ceil(duration - (now - startedAt) / 1000)))
+}
+
+// Resolves which teams play a given sport within a fixture slot (§8). Round-
+// robin fixtures (m1-m6) always share one printed pairing at the fixture
+// level. The playoff/final slots can seat different teams per sport once
+// auto-populated, since soccer and netball run separate round-robin tables —
+// so a per-sport pairing, when present, wins over the fixture-level one.
+export function sportHomeAwayIds(fixture, sport) {
+  return {
+    homeTeamId: fixture?.[sport]?.homeTeamId ?? fixture?.homeTeamId ?? null,
+    awayTeamId: fixture?.[sport]?.awayTeamId ?? fixture?.awayTeamId ?? null,
+  }
+}
+
+// One headline pairing for UI that shows a single "who's playing" label per
+// fixture slot (ticket headers, the MANCO report): the fixed fixture-level
+// pairing when set (always true for round-robin), else whichever sport has
+// auto-populated its own pairing first. Soccer and netball only ever diverge
+// on the playoff/final slots; screens that need each sport's own authoritative
+// pairing regardless of this headline should call sportHomeAwayIds directly.
+export function headlinePairing(fixture) {
+  if (fixture?.homeTeamId && fixture?.awayTeamId) {
+    return { homeTeamId: fixture.homeTeamId, awayTeamId: fixture.awayTeamId }
+  }
+  for (const sport of ['soccer', 'netball']) {
+    const ids = sportHomeAwayIds(fixture, sport)
+    if (ids.homeTeamId && ids.awayTeamId) return ids
+  }
+  return { homeTeamId: null, awayTeamId: null }
 }
 
 export function formatDurationSeconds(value) {
