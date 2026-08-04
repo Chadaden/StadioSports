@@ -37,6 +37,7 @@ function SportRemote({ fixture, sport }) {
   // Two-tap in-app confirm for Reset/Publish (replaces window.confirm, which
   // silently no-ops on tablet/PWA contexts that suppress native dialogs).
   const [armed, setArmed] = useState(null) // 'reset' | 'publish' | null
+  const [publishError, setPublishError] = useState(null)
   const running = isClockRunning(s.clock)
   const hasActiveSinBin = (s.cards || []).some((card) => sinBinRemainingSeconds(card) > 0)
   const now = useSecondTick(running || hasActiveSinBin)
@@ -205,11 +206,17 @@ function SportRemote({ fixture, sport }) {
             {publishReady && (
               armed === 'publish' ? (
                 <>
-                  <button className="sd-publish is-armed"
-                    onClick={() => { actions.publishSport(fixture.id, sport); setArmed(null) }}>
+                  <button className="sd-publish is-armed" onClick={() => {
+                    setPublishError(null)
+                    Promise.resolve(actions.publishSport(fixture.id, sport))
+                      .then(() => setArmed(null))
+                      .catch((err) => setPublishError(err?.message || 'Publish failed — try again.'))
+                  }}>
                     Confirm & lock score
                   </button>
-                  <button className="sd-cardbtn" onClick={() => setArmed(null)}>Cancel</button>
+                  <button className="sd-cardbtn" onClick={() => { setArmed(null); setPublishError(null) }}>
+                    Cancel
+                  </button>
                 </>
               ) : (
                 <button className="sd-publish" onClick={() => setArmed('publish')}>
@@ -218,6 +225,7 @@ function SportRemote({ fixture, sport }) {
               )
             )}
           </div>
+          {publishError && <div className="sd-sk-note sd-publish-error">{publishError}</div>}
           {picker?.kind === 'card' && (
             <CardPicker fixture={fixture} sport={sport} home={home} away={away}
               onDone={() => setPicker(null)} />

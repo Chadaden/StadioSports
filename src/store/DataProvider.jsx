@@ -275,12 +275,21 @@ export function DataProvider({ children }) {
       // Publish (live → final, locks, clock stops). Live mode reads every
       // fixture inside one transaction so concurrent final round-robin
       // publications retry against a consistent standings table.
+      //
+      // Transaction.get() only supports individual DocumentReferences, not a
+      // collection Query — passing a Query throws inside the SDK's internal
+      // read-set bookkeeping (TypeError reading 'path' on undefined), and
+      // since the write action was never awaited/caught anywhere, that threw
+      // promise silently vanished: the button looked clicked and nothing
+      // published. Read each known fixture id individually instead.
       publishSport: (fixtureId, sport) => {
         if (isFirebaseConfigured) {
-          const fixturesQuery = query(collection(db, 'events', EVENT_ID, 'fixtures'))
+          const fixtureIds = Array.from(new Set([
+            fixtureId, ...(snapRef.current?.fixtures || []).map((f) => f.id),
+          ]))
           return runTransaction(db, async (transaction) => {
-            const snapshot = await transaction.get(fixturesQuery)
-            const fixtures = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
+            const docs = await Promise.all(fixtureIds.map((id) => transaction.get(fixtureRef(id))))
+            const fixtures = docs.filter((d) => d.exists()).map((d) => ({ id: d.id, ...d.data() }))
             const fixture = fixtures.find((f) => f.id === fixtureId)
             if (!fixture || !canPublishSport(fixture[sport])) return
             const patches = buildPublicationPatches(
