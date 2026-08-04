@@ -9,6 +9,7 @@ import {
   attributeScorerState,
   canPublishSport,
   canStartSecondHalf,
+  fixtureOverallStatus,
   headlinePairing,
   isAlarmActive,
   pauseClockState,
@@ -259,4 +260,28 @@ test('headlinePairing prefers the fixture-level pairing, else the first sport wi
     headlinePairing({ homeTeamId: null, awayTeamId: null, soccer: {}, netball: {} }),
     { homeTeamId: null, awayTeamId: null },
   )
+})
+
+test('fixtureOverallStatus is final only once both sports are, live if either is', () => {
+  assert.equal(
+    fixtureOverallStatus({ soccer: { status: 'upcoming' }, netball: { status: 'upcoming' } }),
+    'upcoming',
+  )
+  assert.equal(
+    fixtureOverallStatus({ soccer: { status: 'live' }, netball: { status: 'upcoming' } }),
+    'live',
+  )
+  assert.equal(
+    fixtureOverallStatus({ soccer: { status: 'final' }, netball: { status: 'live' } }),
+    'live',
+  )
+  assert.equal(
+    fixtureOverallStatus({ soccer: { status: 'final' }, netball: { status: 'upcoming' } }),
+    'upcoming',
+  )
+  assert.equal(
+    fixtureOverallStatus({ soccer: { status: 'final' }, netball: { status: 'final' } }),
+    'final',
+  )
+  assert.equal(fixtureOverallStatus(undefined), 'upcoming')
 })

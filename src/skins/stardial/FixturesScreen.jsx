@@ -8,7 +8,7 @@ import { useData, useTeamMap } from '../../store/DataProvider'
 import { useIsScorekeeper } from '../../store/RoleContext'
 import { formatClock, useClockTick } from '../../lib/clock'
 import { fixtureDisplayGroups } from '../../lib/fixtureOrder'
-import { headlinePairing, sportHomeAwayIds } from '../../lib/matchState'
+import { fixtureOverallStatus, headlinePairing, sportHomeAwayIds } from '../../lib/matchState'
 import { computeStandings } from '../../lib/standings'
 import { MancoReportButton } from '../../screens/MancoReport'
 import { SdCrest, StatusTag } from './bits'
@@ -103,16 +103,13 @@ function FixtureTicket({ fixture, teams, showControls }) {
   const { homeTeamId, awayTeamId } = headlinePairing(fixture)
   const home = teams[homeTeamId]
   const away = teams[awayTeamId]
-  const status =
-    fixture.soccer?.status === 'live' || fixture.netball?.status === 'live' ? 'live'
-    : fixture.soccer?.status === 'final' && fixture.netball?.status === 'final' ? 'final'
-    : 'upcoming'
+  const status = fixtureOverallStatus(fixture)
 
   return (
     <div className={`sd-stop is-${status}`}>
       <div className="sd-stop-node">
-        <span className="sd-stop-time">{fixture.slotTime}</span>
         <span className="sd-stop-dot" />
+        <span className="sd-stop-time">{fixture.slotTime}</span>
       </div>
 
       <div className="sd-ticket">

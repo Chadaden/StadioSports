@@ -303,22 +303,22 @@
 .sd-composer button:disabled { opacity: 0.35; cursor: not-allowed; }
 
 /* ============================================================================
-   RAIL — fixtures & schedule share the day-spine
+   RAIL — fixtures & schedule share the day-spine. Time+dot are a compact
+   label sitting above each card rather than a separate reserved column, so
+   the card itself is one full-width, symmetric block instead of being
+   squeezed off to one side next to a wide time gutter.
    ============================================================================ */
 .sd-rail { position: relative; }
-.sd-stop {
-  display: grid; grid-template-columns: 50px 1fr; gap: 10px;
-  position: relative; margin-bottom: 16px;
-}
+.sd-stop { position: relative; margin-bottom: 16px; }
 .sd-stop::before {
   content: '';
-  position: absolute; left: 24px; top: 36px; bottom: -16px; width: 2px;
+  position: absolute; left: 4px; top: 19px; bottom: -16px; width: 2px;
   background: #d9dde2;
 }
 .sd-stop:last-child::before { display: none; }
-.sd-stop-node { display: flex; flex-direction: column; align-items: center; gap: 7px; padding-top: 6px; }
+.sd-stop-node { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
 .sd-stop-time { font-family: var(--mono, ui-monospace); font-size: 11.5px; font-weight: 700; color: var(--sd-ink-soft); }
-.sd-stop-dot { width: 11px; height: 11px; border-radius: 50%; background: #c6ccd2; position: relative; z-index: 1; }
+.sd-stop-dot { width: 9px; height: 9px; border-radius: 50%; background: #c6ccd2; flex: none; position: relative; z-index: 1; }
 .sd-stop.is-live .sd-stop-dot { background: var(--sd-red); animation: sd-ring 1.6s ease-out infinite; }
 .sd-stop.is-final .sd-stop-dot { background: var(--sd-lime); }
 .sd-stop.kind-match .sd-stop-dot { background: var(--sd-sky); }
@@ -332,9 +332,7 @@
   box-shadow: var(--sd-shadow-sm);
   min-width: 0;
 }
-.sd-stop.is-live .sd-ticket {
-  box-shadow: 0 0 0 1.5px rgba(237, 28, 36, 0.32), var(--sd-shadow-md);
-}
+.sd-stop.is-live .sd-ticket { animation: sd-card-pulse 2s ease-in-out infinite; }
 .sd-ticket-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
 .sd-ticket-round { font-size: 9.5px; font-weight: 800; letter-spacing: 0.12em; color: var(--sd-ink-faint); }
 .sd-ticket-pair { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
@@ -650,7 +648,12 @@
   border-radius: 999px; padding: 5px 10px;
   animation: sd-pulse 1.3s ease-in-out infinite;
 }
-.sd-stop.is-now .sd-slot { box-shadow: 0 0 0 1.5px rgba(237, 28, 36, 0.3), var(--sd-shadow-md); }
+.sd-stop.is-now .sd-slot, .sd-stop.is-live .sd-slot { animation: sd-card-pulse 2s ease-in-out infinite; }
+/* Striking a published result off the day schedule (§8) — same "done" signal
+   as the collapsed Published games rail on Fixtures, just dimmed in place
+   here instead of moving rows around a fixed program order. */
+.sd-stop.is-final .sd-slot { opacity: 0.75; }
+.sd-stop.is-final .sd-slot-body b { text-decoration: line-through; text-decoration-color: var(--sd-ink-faint); }
 
 /* ---- empty state — left-aligned, no icon ---------------------------------------- */
 .sd-empty {
@@ -675,8 +678,8 @@
 .sd-tabbar button {
   position: relative;
   appearance: none; border: none; background: none; cursor: pointer;
-  min-height: 46px; padding: 8px 0 4px;
-  display: flex; align-items: center; justify-content: flex-start; text-align: left; padding-left: 12px;
+  min-height: 46px; padding: 8px 4px 4px;
+  display: flex; align-items: center; justify-content: center; text-align: center;
   color: #8b9097; font-family: inherit; font-size: 12.5px; font-weight: 700; letter-spacing: 0.01em;
   transition: color 0.15s ease;
 }
@@ -711,14 +714,17 @@
   .sd-scorekeeper-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; }
   .sd-scorekeeper-layout .sd-rail { min-width: 0; }
   .sd-scorekeeper-layout .sd-published-games { grid-column: 1; }
-  .sd-scorekeeper-layout .sd-stop { grid-template-columns: 56px minmax(0, 1fr); }
   .sd-scorekeeper-layout .sd-ticket { padding: 22px; }
   .sd-scorekeeper-layout .sd-sk { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
   .sd-scorekeeper-layout .sd-remote { margin: 0; }
   .sd-scorekeeper-layout .sd-picker-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 300px; }
   .sd-scorekeeper-layout .sd-picker-list .sd-picker-unknown { grid-column: 1 / -1; }
 
-  .sd-sk-context { display: block; position: sticky; top: 18px; padding: 18px; background: var(--sd-card); border: 1px solid var(--sd-line); border-radius: 18px; box-shadow: var(--sd-shadow-md); }
+  /* Grid auto-placement would otherwise slot this aside into whichever row
+     .sd-published-games lands on (it's pinned to grid-column:1), pushing the
+     panel down and out of view as more games get published. Spanning every
+     row keeps its sticky cell anchored at the grid's top for the full scroll. */
+  .sd-sk-context { display: block; grid-column: 2; grid-row: 1 / -1; position: sticky; top: 18px; padding: 18px; background: var(--sd-card); border: 1px solid var(--sd-line); border-radius: 18px; box-shadow: var(--sd-shadow-md); }
   .sd-sk-context-head { display: flex; flex-direction: column; gap: 3px; padding-bottom: 14px; border-bottom: 1px solid var(--sd-line); }
   .sd-sk-context-head span { font-family: var(--sd-anton); font-size: 20px; letter-spacing: 0.03em; text-transform: uppercase; color: var(--sd-ink); }
   .sd-sk-context-head small { font-size: 11px; font-weight: 700; color: var(--sd-ink-soft); }
@@ -762,6 +768,13 @@
   0% { box-shadow: 0 0 0 0 rgba(237, 28, 36, 0.45); }
   100% { box-shadow: 0 0 0 9px rgba(237, 28, 36, 0); }
 }
+/* Live card outer-rim pulse (§7) — same red "breathing" ring as the rail's
+   live dot (sd-ring), just slower and layered under the card's own resting
+   shadow so it never disappears between pulses. */
+@keyframes sd-card-pulse {
+  0%, 100% { box-shadow: 0 0 0 1.5px rgba(237, 28, 36, 0.35), 0 0 0 0 rgba(237, 28, 36, 0.25), var(--sd-shadow-md); }
+  50% { box-shadow: 0 0 0 1.5px rgba(237, 28, 36, 0.55), 0 0 0 6px rgba(237, 28, 36, 0), var(--sd-shadow-md); }
+}
 @keyframes sd-pop {
   0% { transform: scale(1); }
   35% { transform: scale(1.28); filter: brightness(1.3); }
@@ -778,4 +791,5 @@
 @media (prefers-reduced-motion: reduce) {
   .sd-tabbar button, .sd-tabbar button::before { transition: none; }
   .sd-alarm, .sd-remote.is-alarm { animation: none; }
+  .sd-ticket, .sd-slot { animation: none; }
 }

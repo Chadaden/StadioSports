@@ -256,6 +256,16 @@ export function headlinePairing(fixture) {
   return { homeTeamId: null, awayTeamId: null }
 }
 
+// One fixture's overall status across both sports — live if either sport is
+// live, final only once both are (a fixture isn't "done" until both legs
+// are), else upcoming. Shared by the Fixtures ticket rail and the Schedule
+// day rail so a published result strikes off the same fixture in both places.
+export function fixtureOverallStatus(fixture) {
+  if (fixture?.soccer?.status === 'live' || fixture?.netball?.status === 'live') return 'live'
+  if (fixture?.soccer?.status === 'final' && fixture?.netball?.status === 'final') return 'final'
+  return 'upcoming'
+}
+
 export function formatDurationSeconds(value) {
   const total = Math.max(0, Math.floor(Number(value) || 0))
   const minutes = Math.floor(total / 60)
