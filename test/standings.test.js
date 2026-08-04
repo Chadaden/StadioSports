@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { computeAutoPairings, roundRobinComplete } from '../src/lib/standings.js'
+import { buildPublicationPatches, computeAutoPairings, roundRobinComplete } from '../src/lib/standings.js'
 
 const teams = [
   { id: 'centurion', name: 'Centurion' },
@@ -67,4 +67,43 @@ test('computeAutoPairings returns null until that sport\'s round-robin is comple
   const fixtures = baseFixtures()
   for (let i = 0; i < 5; i++) fixtures[i].soccer = finalResult(1, 0) // only 5 of 6 played
   assert.equal(computeAutoPairings('soccer', fixtures, teams, event), null)
+})
+
+test('publishing the final round-robin result updates the result and both upcoming knockout pairings together', () => {
+  const fixtures = baseFixtures()
+  fixtures[0].soccer = finalResult(2, 0)
+  fixtures[1].soccer = finalResult(2, 0)
+  fixtures[2].soccer = finalResult(2, 0)
+  fixtures[3].soccer = finalResult(2, 0)
+  fixtures[4].soccer = finalResult(2, 0)
+  fixtures[5].soccer = { ...blankSport(), status: 'live', home: 2, away: 0 }
+
+  const patches = buildPublicationPatches('m6', 'soccer', fixtures, teams, event)
+  assert.deepEqual(patches.map((patch) => patch.id), ['m6', 'm7', 'm8'])
+  assert.equal(patches[0].patch.status, 'final')
+  assert.deepEqual(
+    { homeTeamId: patches[1].patch.homeTeamId, awayTeamId: patches[1].patch.awayTeamId },
+    { homeTeamId: 'waterfall', awayTeamId: 'durbanville' },
+  )
+  assert.deepEqual(
+    { homeTeamId: patches[2].patch.homeTeamId, awayTeamId: patches[2].patch.awayTeamId },
+    { homeTeamId: 'centurion', awayTeamId: 'musgrave' },
+  )
+})
+
+test('re-publishing a corrected round-robin result never reseeds a live or final knockout sport', () => {
+  const fixtures = baseFixtures()
+  for (let i = 0; i < 6; i++) fixtures[i].soccer = finalResult(2, 0)
+  fixtures[5].soccer = finalResult(1, 0)
+  fixtures[6].soccer = {
+    ...finalResult(3, 1), homeTeamId: 'durbanville', awayTeamId: 'waterfall',
+    scorers: [{ name: 'Existing playoff goal' }],
+  }
+  fixtures[7].soccer = {
+    ...blankSport(), status: 'live', home: 1, away: 0,
+    homeTeamId: 'musgrave', awayTeamId: 'centurion',
+  }
+
+  const patches = buildPublicationPatches('m6', 'soccer', fixtures, teams, event)
+  assert.deepEqual(patches.map((patch) => patch.id), ['m6'])
 })

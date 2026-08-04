@@ -9,11 +9,10 @@
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  addDoc, collection, doc, getDocs, onSnapshot, query, serverTimestamp, updateDoc, writeBatch,
+  addDoc, collection, doc, getDocs, onSnapshot, query, runTransaction, serverTimestamp, updateDoc, writeBatch,
 } from 'firebase/firestore'
 import { db, EVENT_ID, isFirebaseConfigured } from '../firebase/config'
 import { buildSeedSnapshot, MILESTONES } from '../data/seed'
-import { elapsedSeconds } from '../lib/clock'
 import {
   activateSportState,
   addSinBinCardState,
@@ -26,7 +25,7 @@ import {
   startClockState,
   startSecondHalfState,
 } from '../lib/matchState'
-import { computeAutoPairings } from '../lib/standings'
+import { buildPublicationPatches } from '../lib/standings'
 import { useRole } from './RoleContext'
 
 const DataContext = createContext(null)
@@ -256,51 +255,28 @@ export function DataProvider({ children }) {
       addCard: (fixtureId, sport, card) =>
         writeSport(fixtureId, sport, (s) => addSinBinCardState(s, card)),
 
-      // Publish (live → final, locks, clock stops). When this completes a
-      // sport's round-robin (§8), also auto-populates that sport's playoff
-      // (3rd/4th) and final pairings from the resulting standings, in the
-      // same write — never touching the other sport's pairing or one that's
-      // already set to the same teams.
+      // Publish (live → final, locks, clock stops). Live mode reads every
+      // fixture inside one transaction so concurrent final round-robin
+      // publications retry against a consistent standings table.
       publishSport: (fixtureId, sport) => {
-        const fixtures = snapRef.current?.fixtures || []
-        const fx = fixtures.find((f) => f.id === fixtureId)
-        if (!fx) return
-
-        const publishedSport = {
-          ...fx[sport],
-          scorers: [...(fx[sport].scorers || [])],
-          cards: [...(fx[sport].cards || [])],
-          status: 'final',
-          clock: fx[sport].clock
-            ? { phase: 'ft', runningSince: null, baseSeconds: Math.round(elapsedSeconds(fx[sport].clock)) }
-            : null,
-        }
-        const patches = [{ id: fixtureId, patch: publishedSport }]
-
-        // Only a round-robin result can newly complete the round-robin table.
-        if (fx.round === 'roundRobin') {
-          const nextFixtures = fixtures.map((f) => (f.id === fixtureId ? { ...f, [sport]: publishedSport } : f))
-          const pairings = computeAutoPairings(sport, nextFixtures, snapRef.current?.teams || [], snapRef.current?.event)
-          if (pairings) {
-            const playoffFx = fixtures.find((f) => f.round === 'playoff')
-            const finalFx = fixtures.find((f) => f.round === 'final')
-            const isSet = (target, pairing) =>
-              target?.[sport]?.homeTeamId === pairing.homeTeamId && target?.[sport]?.awayTeamId === pairing.awayTeamId
-            if (playoffFx && !isSet(playoffFx, pairings.playoff)) {
-              patches.push({ id: playoffFx.id, patch: { ...playoffFx[sport], ...pairings.playoff } })
-            }
-            if (finalFx && !isSet(finalFx, pairings.final)) {
-              patches.push({ id: finalFx.id, patch: { ...finalFx[sport], ...pairings.final } })
-            }
-          }
-        }
-
         if (isFirebaseConfigured) {
-          if (patches.length === 1) return updateDoc(fixtureRef(fixtureId), { [sport]: publishedSport })
-          const batch = writeBatch(db)
-          for (const { id, patch } of patches) batch.update(fixtureRef(id), { [sport]: patch })
-          return batch.commit()
+          const fixturesQuery = query(collection(db, 'events', EVENT_ID, 'fixtures'))
+          return runTransaction(db, async (transaction) => {
+            const snapshot = await transaction.get(fixturesQuery)
+            const fixtures = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
+            const patches = buildPublicationPatches(
+              fixtureId, sport, fixtures, snapRef.current?.teams || [], snapRef.current?.event,
+            )
+            if (!patches) return
+            for (const { id, patch } of patches) transaction.update(fixtureRef(id), { [sport]: patch })
+          })
         }
+
+        const fixtures = snapRef.current?.fixtures || []
+        const patches = buildPublicationPatches(
+          fixtureId, sport, fixtures, snapRef.current?.teams || [], snapRef.current?.event,
+        )
+        if (!patches) return
 
         setSnapshot((prev) => ({
           ...prev,
