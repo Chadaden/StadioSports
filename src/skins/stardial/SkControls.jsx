@@ -10,7 +10,7 @@ import {
   PHASE_LABELS, clockMinute, formatClock, isClockRunning, useSecondTick,
 } from '../../lib/clock'
 import {
-  canPublishSport, canStartSecondHalf, formatDurationSeconds, isAlarmActive, sinBinRemainingSeconds, sportHomeAwayIds,
+  DEMO_INSTANT_PUBLISH_ENABLED, canPublishSport, canStartSecondHalf, formatDurationSeconds, isAlarmActive, sinBinRemainingSeconds, sportHomeAwayIds,
 } from '../../lib/matchState'
 import { LivePill, ScorePop } from './bits'
 
@@ -43,6 +43,7 @@ function SportRemote({ fixture, sport }) {
   const now = useSecondTick(running || hasActiveSinBin)
   const alarmActive = isAlarmActive(s.clock, now)
   const publishReady = canPublishSport(s, now)
+  const instantPublishReady = DEMO_INSTANT_PUBLISH_ENABLED && s.status === 'live'
   const secondHalfReady = canStartSecondHalf(s, now)
   const alarmLabel = s.clock?.phase === 'h2' ? 'FULL-TIME — PAUSE NOW' : 'HALFTIME — PAUSE NOW'
 
@@ -220,11 +221,16 @@ function SportRemote({ fixture, sport }) {
                 </>
               ) : (
                 <button className="sd-publish" onClick={() => setArmed('publish')}>
-                  Publish full-time
+                  {instantPublishReady ? 'Publish demo score' : 'Publish full-time'}
                 </button>
               )
             )}
           </div>
+          {instantPublishReady && (
+            <div className="sd-sk-note sd-demo-publish-note">
+              Demo mode: publishing is available before full-time for tomorrow's stakeholder walkthrough.
+            </div>
+          )}
           {publishError && <div className="sd-sk-note sd-publish-error">{publishError}</div>}
           {picker?.kind === 'card' && (
             <CardPicker fixture={fixture} sport={sport} home={home} away={away}

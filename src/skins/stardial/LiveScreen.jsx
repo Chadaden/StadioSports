@@ -10,7 +10,7 @@ import { useState } from 'react'
 import { useData, useTeamMap } from '../../store/DataProvider'
 import { useIsScorekeeper } from '../../store/RoleContext'
 import { PHASE_LABELS, formatClock, useClockTick } from '../../lib/clock'
-import { headlinePairing, sportHomeAwayIds } from '../../lib/matchState'
+import { finalChampions, headlinePairing, sportHomeAwayIds } from '../../lib/matchState'
 import { SdCrest, LivePill, ScorePop, SectionTitle, ModeChip } from './bits'
 
 const SPORTS = ['soccer', 'netball']
@@ -19,6 +19,7 @@ export default function SdLiveScreen() {
   const { fixtures = [], announcements = [], event, isLive } = useData()
   const teams = useTeamMap()
   const isScorekeeper = useIsScorekeeper()
+  const champions = finalChampions(fixtures, Object.values(teams))
 
   const anyLive = fixtures.some((f) => f.soccer?.status === 'live' || f.netball?.status === 'live')
   const upNext = fixtures
@@ -44,6 +45,8 @@ export default function SdLiveScreen() {
       </section>
 
       <div className="sd-sheet">
+        {champions.length > 0 && <ChampionsBanner champions={champions} />}
+
         <SectionTitle right={upNext.length ? `${upNext.length} of ${fixtures.length}` : null}>
           Up next
         </SectionTitle>
@@ -66,6 +69,22 @@ export default function SdLiveScreen() {
         )}
       </div>
     </>
+  )
+}
+
+function ChampionsBanner({ champions }) {
+  return (
+    <section className="sd-champions" aria-live="polite">
+      <span className="sd-champions-kicker">These are the champions</span>
+      <div className="sd-champions-grid">
+        {champions.map(({ sport, team }) => (
+          <div className={`sd-champion-card sd-champion-${sport}`} key={sport} style={{ '--tc': team.colorHex }}>
+            <span>{`2026 ${sport} champions`}</span>
+            <b>{team.name}</b>
+          </div>
+        ))}
+      </div>
+    </section>
   )
 }
 

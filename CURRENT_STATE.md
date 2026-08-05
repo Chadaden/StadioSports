@@ -5,6 +5,18 @@ an older PR or re-enable the classic skin.
 
 ## Live now — 4 August 2026 (supersedes the baseline below)
 
+- **6 August 2026 demo update on this branch:** Centurion netball public roster
+  from `Centurion_netball.xlsx` is now in `src/data/seed.js` and was
+  field-backfilled to live Firestore with
+  `npm run backfill:centurion-netball -- --apply` (9/9 player docs verified).
+  The sensitive spreadsheet columns were deliberately not committed. Hosting
+  was redeployed after adding a temporary scorekeeper instant-publish bypass
+  (`DEMO_INSTANT_PUBLISH_ENABLED = true` in `src/lib/matchState.js`) so Chad
+  can start a match, add a few demo goals, and publish immediately during the
+  stakeholder walkthrough. Remove that flag after Chad confirms the demo
+  window is closed. The spectator Live tab now shows a “These are the
+  champions” banner for each sport once the published final (`round: final`,
+  `m8`) has a non-drawn result.
 - **What's actually deployed:** branch `fix/DAW-34-scorekeeper-finalisation`,
   tracked by [PR #11](https://github.com/Chadaden/StadioSports/pull/11) — not
   `main`. `main` is still at the 20 July baseline (`14f0400`) and is missing
