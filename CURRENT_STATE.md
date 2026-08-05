@@ -5,12 +5,12 @@ an older PR or re-enable the classic skin.
 
 ## Live now — 4 August 2026 (supersedes the baseline below)
 
-- **What's actually deployed:** commit `b5dffa1` on branch
-  `fix/DAW-34-scorekeeper-finalisation`, pushed to `origin` — **not** `main`.
-  `main` is still at the 20 July baseline (`14f0400`) and is missing
-  everything below. **No PR is open for this branch yet** — until one exists
-  and it's merged, treat `fix/DAW-34-scorekeeper-finalisation` (not `main`) as
-  the branch to continue from.
+- **What's actually deployed:** branch `fix/DAW-34-scorekeeper-finalisation`,
+  tracked by [PR #11](https://github.com/Chadaden/StadioSports/pull/11) — not
+  `main`. `main` is still at the 20 July baseline (`14f0400`) and is missing
+  everything below. Until PR #11 merges, treat
+  `fix/DAW-34-scorekeeper-finalisation` (not `main`) as the branch to
+  continue from.
 - **What shipped today**, in order, each built/tested/deployed individually:
   - `3194d96`/`ba5dba6`/`90e964c`/`2ba98d6`/`1819407`/`aeaf3fe`/`051ebe4`/`18ee50b`
     — the halftime/full-time alarm, pause-synced sin-bins, deferred scorer
@@ -33,8 +33,8 @@ an older PR or re-enable the classic skin.
     card layout made full-width/symmetric (time+dot moved off into a label
     above the card instead of a reserved side column), live-card pulse, and
     bottom tab bar centering.
-- **Not done / open follow-ups:** no PR raised for this branch; `main` not
-  updated; user mentioned intending to make their own small mobile UI tweaks
+- **Not done / open follow-ups:** PR #11 not yet merged; `main` not updated;
+  user mentioned intending to make their own small mobile UI tweaks
   separately. A stray player name in live Firestore data reads literally
   "Bono hyphen Kholophe" — looks like a data-import artifact, not a code bug;
   unconfirmed whether it's real or test data.
@@ -128,7 +128,9 @@ profiles.
 - Superseded remote working branches were removed after the approved tag was
   pushed, and at the time this was written `main` was the only continuing
   source branch. That changed 4 August 2026 — see "Live now" at the top of
-  this file. No PR exists for the new branch yet, so it isn't numbered here.
+  this file.
+- PR #11 tracks `fix/DAW-34-scorekeeper-finalisation` — tournament
+  auto-population, publish-flow fixes, and UI polish. Not yet merged.
 
 ## Release verification
 
