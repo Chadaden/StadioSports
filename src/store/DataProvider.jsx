@@ -12,7 +12,7 @@ import {
   addDoc, collection, doc, getDocs, onSnapshot, query, runTransaction, serverTimestamp, updateDoc, writeBatch,
 } from 'firebase/firestore'
 import { db, EVENT_ID, isFirebaseConfigured } from '../firebase/config'
-import { buildSeedSnapshot, MILESTONES } from '../data/seed'
+import { buildSeedSnapshot, MILESTONES, players as seedPlayers } from '../data/seed'
 import {
   activateSportState,
   addGoalState,
@@ -109,9 +109,13 @@ export function DataProvider({ children }) {
     let started = false
     const commit = () => {
       if (!started) return
+      const rosterForTeam = (teamId) => {
+        const liveRoster = next.players[teamId]
+        return liveRoster?.length ? liveRoster : seedPlayers[teamId] || []
+      }
       setSnapshot({
         event: next.event,
-        teams: next.teams.map((t) => ({ ...t, players: next.players[t.id] || [] })),
+        teams: next.teams.map((t) => ({ ...t, players: rosterForTeam(t.id) })),
         fixtures: next.fixtures,
         travel: next.travel,
         announcements: next.announcements,
