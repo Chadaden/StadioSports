@@ -20,6 +20,7 @@ import {
   adjustScoreState,
   attributeScorerState,
   canPublishSport,
+  removeGoalState,
   removeLatestGoalState,
   reopenSportState,
   pauseClockState,
@@ -40,6 +41,11 @@ export function DataProvider({ children }) {
     isFirebaseConfigured ? null : buildSeedSnapshot(),
   )
   const [loading, setLoading] = useState(isFirebaseConfigured)
+
+  // Surfaced by any screen that renders scorekeeper controls (§SkControls) so
+  // a failed write is never just a tap that silently did nothing — see
+  // writeSport below, the one place all those writes funnel through.
+  const [dataError, setDataError] = useState(null)
 
   // Manager-only private profiles (emergency contact / medical / dietary, §9).
   // Live: one listener on the manager's own team's `private` subcollection.
@@ -109,9 +115,19 @@ export function DataProvider({ children }) {
     let started = false
     const commit = () => {
       if (!started) return
+      // Seed players stand in only while this team's own players listener
+      // hasn't reported back yet, so goal attribution isn't stuck with an
+      // empty picker during that load window. Once the listener has fired —
+      // even with zero docs — that's Firestore's real answer, not a gap to
+      // paper over: an empty live roster stays empty, so TeamScreen's
+      // "Roster pending" check (players.length === 0) can still catch a
+      // genuinely missing/unsubmitted roster instead of it silently reading
+      // as confirmed seed data.
       const rosterForTeam = (teamId) => {
-        const liveRoster = next.players[teamId]
-        return liveRoster?.length ? liveRoster : seedPlayers[teamId] || []
+        if (expectedPlayerTeams.has(teamId) && !loadedPlayerTeams.has(teamId)) {
+          return seedPlayers[teamId] || []
+        }
+        return next.players[teamId] || []
       }
       setSnapshot({
         event: next.event,
@@ -187,10 +203,22 @@ export function DataProvider({ children }) {
   const actions = useMemo(() => {
     const fixtureRef = (id) => doc(db, 'events', EVENT_ID, 'fixtures', id)
 
-    // Serialize every scorekeeper edit against the current fixture. A complete
-    // sport object is stored on each write, so deriving it from a stale browser
-    // snapshot could otherwise discard a quick second tap or attribution.
-    const writeSport = (fixtureId, sport, mutate) => {
+    // Serialize a scorekeeper edit against the current fixture. A complete
+    // sport object is stored on each write, so deriving it from a stale
+    // browser snapshot could otherwise discard a quick second tap or
+    // attribution.
+    //
+    // `transactional` opts into a Firestore transaction (an extra server
+    // read + retry-on-conflict) for writes that mutate a shared list
+    // (scorers/cards): two devices concurrently reading-then-writing that
+    // same array can otherwise silently drop one write under a plain
+    // updateDoc's last-write-wins semantics. Simple clock-phase transitions
+    // (start/pause/resume/reset) don't share that risk — a lost update there
+    // just means the next tap corrects it a moment later, same as if two
+    // people pressed different buttons on a shared stopwatch — so they skip
+    // the extra read/retry and write straight off this client's own
+    // live-subscribed fixture.
+    const writeSport = (fixtureId, sport, mutate, { transactional = false } = {}) => {
       const fx = (snapRef.current?.fixtures || []).find((f) => f.id === fixtureId)
       if (!fx) return
       const mutateSport = (fixture) => mutate({
@@ -199,12 +227,25 @@ export function DataProvider({ children }) {
         cards: [...(fixture[sport].cards || [])],
       }, fixture)
       if (isFirebaseConfigured) {
+        // Every scorekeeper tap (pause/resume/goal/card/attribution/reset)
+        // funnels through here, so one catch covers all of them — the same
+        // silent-failure shape publishSport hit once already (see its own
+        // comment below) instead of trusting every future call site to
+        // remember its own try/catch.
+        const reportFailure = (error) => {
+          console.error(`Scorekeeper write failed (fixture ${fixtureId}, ${sport}):`, error)
+          setDataError('That action failed to save — check your connection and try again.')
+          throw error
+        }
+        if (!transactional) {
+          return updateDoc(fixtureRef(fixtureId), { [sport]: mutateSport(fx) }).catch(reportFailure)
+        }
         return runTransaction(db, async (transaction) => {
           const current = await transaction.get(fixtureRef(fixtureId))
           if (!current.exists()) return
           const fixture = { id: current.id, ...current.data() }
           transaction.update(fixtureRef(fixtureId), { [sport]: mutateSport(fixture) })
-        })
+        }).catch(reportFailure)
       }
       const nextSport = mutateSport(fx)
       setSnapshot((prev) => ({
@@ -236,45 +277,46 @@ export function DataProvider({ children }) {
         writeSport(fixtureId, sport, (s) => resetClockState(s)),
 
       // Goal: bumps the score AND logs the scorer (with the clock minute
-      // captured in the UI at tap time) in one write — pushes to every viewer.
+      // captured in the UI at tap time) in one write — pushes to every
+      // viewer. Transactional: a concurrent goal from another device must
+      // never be lost off the end of scorers[].
       addGoal: (fixtureId, sport, side, scorer) =>
-        writeSport(fixtureId, sport, (s) => addGoalState(s, side, scorer)),
+        writeSport(fixtureId, sport, (s) => addGoalState(s, side, scorer), { transactional: true }),
 
-      // +/- score corrections (also marks an upcoming match live, clock stopped)
+      // +/- score corrections (also marks an upcoming match live, clock
+      // stopped). Transactional for the same lost-update risk as addGoal.
       adjustScore: (fixtureId, sport, side, delta) =>
-        writeSport(fixtureId, sport, (s) => adjustScoreState(s, side, delta)),
+        writeSport(fixtureId, sport, (s) => adjustScoreState(s, side, delta), { transactional: true }),
 
       // Undo a mis-tapped goal: drops the scorer entry AND the point in the
-      // same write (two separate writes could race each other on stale state).
-      removeGoal: (fixtureId, sport, index) =>
+      // same write (two separate writes could race each other on stale
+      // state). Keyed by the scorer's stable id, not the array index it had
+      // on this device's screen — see removeGoalState for why. Transactional
+      // for the same reason as addGoal.
+      removeGoal: (fixtureId, sport, scorerId) =>
         writeSport(fixtureId, sport, (s, fx) => {
-          const entry = s.scorers[index]
-          if (!entry) return s
           const { awayTeamId } = sportHomeAwayIds(fx, sport)
-          const side = entry.teamId === awayTeamId ? 'away' : 'home'
-          return {
-            ...s,
-            [side]: Math.max(0, (s[side] || 0) - 1),
-            scorers: s.scorers.filter((_, i) => i !== index),
-          }
-        }),
+          return removeGoalState(s, scorerId, awayTeamId)
+        }, { transactional: true }),
 
       removeLatestGoal: (fixtureId, sport, side) =>
         writeSport(fixtureId, sport, (s, fx) => {
           const { homeTeamId, awayTeamId } = sportHomeAwayIds(fx, sport)
           return removeLatestGoalState(s, side, side === 'away' ? awayTeamId : homeTeamId)
-        }),
+        }, { transactional: true }),
 
       addScorer: (fixtureId, sport, scorer) =>
-        writeSport(fixtureId, sport, (s) => ({ ...s, scorers: [...s.scorers, scorer] })),
+        writeSport(fixtureId, sport, (s) => ({ ...s, scorers: [...s.scorers, scorer] }), { transactional: true }),
 
       // Deferred attribution (§5): fills in the name/playerId on one already-
-      // logged (possibly "unknown") scorers[] entry. Never touches the score.
-      attributeScorer: (fixtureId, sport, index, attribution) =>
-        writeSport(fixtureId, sport, (s) => attributeScorerState(s, index, attribution)),
+      // logged (possibly "unknown") scorers[] entry, keyed by its stable id.
+      // Never touches the score. Transactional so a concurrent goal add/
+      // remove on the same array can't make this edit the wrong entry.
+      attributeScorer: (fixtureId, sport, scorerId, attribution) =>
+        writeSport(fixtureId, sport, (s) => attributeScorerState(s, scorerId, attribution), { transactional: true }),
 
       addCard: (fixtureId, sport, card) =>
-        writeSport(fixtureId, sport, (s) => addSinBinCardState(s, card)),
+        writeSport(fixtureId, sport, (s) => addSinBinCardState(s, card), { transactional: true }),
 
       // Publish (live → final, locks, clock stops). Live mode reads every
       // fixture inside one transaction so concurrent final round-robin
@@ -323,6 +365,8 @@ export function DataProvider({ children }) {
 
       reopenSport: (fixtureId, sport) =>
         writeSport(fixtureId, sport, reopenSportState),
+
+      clearDataError: () => setDataError(null),
 
       // ---- Phase 3: Team Manager actions (§3, §6) -------------------------
       // Scoped strictly to the manager's own teamId in both live and demo mode.
@@ -431,8 +475,11 @@ export function DataProvider({ children }) {
   }, [])
 
   const value = useMemo(
-    () => ({ ...(snapshot || {}), profiles, loading: loading || profilesLoading, isLive: isFirebaseConfigured, actions }),
-    [snapshot, profiles, loading, profilesLoading, actions],
+    () => ({
+      ...(snapshot || {}), profiles, loading: loading || profilesLoading,
+      isLive: isFirebaseConfigured, actions, dataError,
+    }),
+    [snapshot, profiles, loading, profilesLoading, actions, dataError],
   )
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>

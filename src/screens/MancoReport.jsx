@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useData } from '../store/DataProvider'
 import { useIsScorekeeper } from '../store/RoleContext'
-import { headlinePairing } from '../lib/matchState'
+import { sportHomeAwayIds } from '../lib/matchState'
 import { computeStandings } from '../lib/standings'
 
 // MANCO report — one-tap assembly + PDF export (build spec §8, Phase 4).
@@ -33,15 +33,32 @@ function MancoModal({ onClose }) {
     (f) => f.soccer?.status === 'final' || f.netball?.status === 'final',
   )
 
+  // Round-robin fixtures always share one pairing across both sports, but the
+  // playoff/final slots can seat different teams per sport once auto-
+  // populated (§8) — so every score, scorer and card below is tagged with
+  // its own sport's pairing via sportHomeAwayIds, never one shared
+  // headlinePairing, or a divergent fixture would print one sport's score
+  // under the other sport's team codes.
+  const sportResult = (fx, sport) => {
+    const s = fx[sport]
+    if (s?.status !== 'final') return null
+    const { homeTeamId, awayTeamId } = sportHomeAwayIds(fx, sport)
+    return {
+      home: teams.find((t) => t.id === homeTeamId),
+      away: teams.find((t) => t.id === awayTeamId),
+      score: s,
+    }
+  }
+
   const allScorers = []
   const allCards = []
   for (const fx of played) {
-    const { homeTeamId, awayTeamId } = headlinePairing(fx)
-    const home = teams.find((t) => t.id === homeTeamId)
-    const away = teams.find((t) => t.id === awayTeamId)
     for (const sport of ['soccer', 'netball']) {
       const s = fx[sport]
       if (!s) continue
+      const { homeTeamId, awayTeamId } = sportHomeAwayIds(fx, sport)
+      const home = teams.find((t) => t.id === homeTeamId)
+      const away = teams.find((t) => t.id === awayTeamId)
       for (const sc of s.scorers || []) {
         allScorers.push({ ...sc, sport, homeTeam: home?.code, awayTeam: away?.code, matchNo: fx.matchNo })
       }
@@ -84,13 +101,13 @@ function MancoModal({ onClose }) {
       // Results
       line('2. Match results', 13, true)
       for (const fx of played) {
-        const { homeTeamId, awayTeamId } = headlinePairing(fx)
-        const h = teams.find((t) => t.id === homeTeamId)
-        const a = teams.find((t) => t.id === awayTeamId)
-        const pair = `${h?.code ?? 'TBD'} vs ${a?.code ?? 'TBD'}`
-        const soc = fx.soccer?.status === 'final' ? `Soccer ${fx.soccer.home}–${fx.soccer.away}` : ''
-        const net = fx.netball?.status === 'final' ? `Netball ${fx.netball.home}–${fx.netball.away}` : ''
-        line(`M${fx.matchNo} ${pair}  ${[soc, net].filter(Boolean).join('  ·  ')}`)
+        const parts = ['soccer', 'netball'].map((sport) => {
+          const r = sportResult(fx, sport)
+          if (!r) return null
+          const label = sport === 'soccer' ? 'Soccer' : 'Netball'
+          return `${label} ${r.home?.code ?? 'TBD'} ${r.score.home}–${r.score.away} ${r.away?.code ?? 'TBD'}`
+        }).filter(Boolean)
+        line(`M${fx.matchNo}  ${parts.join('  ·  ')}`)
       }
       y += 4
 
@@ -152,21 +169,23 @@ function MancoModal({ onClose }) {
 
           <ReportSection title="Results">
             {played.length === 0 && <div className="muted">No completed matches yet.</div>}
-            {played.map((fx) => {
-              const { homeTeamId, awayTeamId } = headlinePairing(fx)
-              const h = teams.find((t) => t.id === homeTeamId)
-              const a = teams.find((t) => t.id === awayTeamId)
-              return (
-                <div className="rp-row" key={fx.id}>
-                  <span>M{fx.matchNo} {h?.code} vs {a?.code}</span>
-                  <span className="rp-val">
-                    {fx.soccer?.status === 'final' ? `Soccer ${fx.soccer.home}–${fx.soccer.away}` : ''}
-                    {' '}
-                    {fx.netball?.status === 'final' ? `Netball ${fx.netball.home}–${fx.netball.away}` : ''}
-                  </span>
-                </div>
-              )
-            })}
+            {played.map((fx) => (
+              <div className="rp-row" key={fx.id}>
+                <span>M{fx.matchNo}</span>
+                <span className="rp-val">
+                  {['soccer', 'netball'].map((sport) => {
+                    const r = sportResult(fx, sport)
+                    if (!r) return null
+                    const label = sport === 'soccer' ? 'Soccer' : 'Netball'
+                    return (
+                      <span key={sport}>
+                        {label} {r.home?.code ?? 'TBD'} {r.score.home}–{r.score.away} {r.away?.code ?? 'TBD'}{' '}
+                      </span>
+                    )
+                  })}
+                </span>
+              </div>
+            ))}
           </ReportSection>
 
           <ReportSection title="Soccer standings">

@@ -408,6 +408,12 @@
 .sd-sk { display: flex; flex-direction: column; gap: 18px; margin-top: 12px; }
 .sd-sk-note { font-size: 12px; font-weight: 600; color: var(--sd-ink-faint); padding: 8px 2px 0; }
 .sd-publish-error { color: var(--sd-red); font-weight: 800; }
+.sd-write-error {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 8px 10px; background: color-mix(in srgb, var(--sd-red) 10%, transparent);
+  border-radius: 10px;
+}
+.sd-write-error .sd-picker-cancel { width: auto; min-height: 0; margin-top: 0; flex-shrink: 0; }
 
 /* Panel differentiation (§4) — each sport gets a tinted panel with a coloured
    top edge, not just a thin border accent, so soccer and netball read as

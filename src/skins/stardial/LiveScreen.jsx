@@ -6,7 +6,7 @@
 // reads as more important than the other (§7). Everything after the two
 // boards sits on a white sheet that slides over them. No icons.
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useData, useTeamMap } from '../../store/DataProvider'
 import { useIsScorekeeper } from '../../store/RoleContext'
 import { PHASE_LABELS, formatClock, useClockTick } from '../../lib/clock'
@@ -75,16 +75,24 @@ export default function SdLiveScreen() {
 // empty state. Resolved independently per sport, so soccer being live never
 // pushes netball into a lesser "secondary" slot, and vice versa.
 function SportBoard({ sport, fixtures, teams }) {
-  const liveFx = fixtures.find((f) => f[sport]?.status === 'live')
-  const nextFx = !liveFx && fixtures.find((f) => {
-    if (f[sport]?.status !== 'upcoming') return false
-    const ids = sportHomeAwayIds(f, sport)
-    return ids.homeTeamId && ids.awayTeamId
-  })
-  const lastFx = !liveFx && !nextFx && [...fixtures].reverse().find((f) => f[sport]?.status === 'final')
-  const fixture = liveFx || nextFx || lastFx
-  const live = Boolean(liveFx)
-  const state = liveFx ? 'live' : nextFx ? 'next' : lastFx ? 'last' : 'empty'
+  // Re-derived only when `fixtures` (or `sport`) actually changes — not on
+  // useClockTick's per-second re-render below, which would otherwise redo
+  // these scans (plus a full array copy for lastFx) every second, for as
+  // long as this board stays open, purely to land on the same fixture.
+  const { fixture, live, state } = useMemo(() => {
+    const liveFx = fixtures.find((f) => f[sport]?.status === 'live')
+    const nextFx = !liveFx && fixtures.find((f) => {
+      if (f[sport]?.status !== 'upcoming') return false
+      const ids = sportHomeAwayIds(f, sport)
+      return ids.homeTeamId && ids.awayTeamId
+    })
+    const lastFx = !liveFx && !nextFx && [...fixtures].reverse().find((f) => f[sport]?.status === 'final')
+    return {
+      fixture: liveFx || nextFx || lastFx,
+      live: Boolean(liveFx),
+      state: liveFx ? 'live' : nextFx ? 'next' : lastFx ? 'last' : 'empty',
+    }
+  }, [fixtures, sport])
 
   const { homeTeamId, awayTeamId } = fixture ? sportHomeAwayIds(fixture, sport) : {}
   const home = fixture ? teams[homeTeamId] : null

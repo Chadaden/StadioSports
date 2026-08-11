@@ -15,8 +15,15 @@ import {
 import { LivePill, ScorePop } from './bits'
 
 export default function SdSkControls({ fixture }) {
+  const { dataError, actions } = useData()
   return (
     <div className="sd-sk">
+      {dataError && (
+        <div className="sd-sk-note sd-publish-error sd-write-error">
+          <span>{dataError}</span>
+          <button className="sd-picker-cancel" onClick={() => actions.clearDataError()}>Dismiss</button>
+        </div>
+      )}
       {['soccer', 'netball'].map((sport) => (
         <SportRemote key={sport} fixture={fixture} sport={sport} />
       ))}
@@ -33,7 +40,7 @@ function SportRemote({ fixture, sport }) {
   const { homeTeamId, awayTeamId } = sportHomeAwayIds(fixture, sport)
   const home = teams[homeTeamId]
   const away = teams[awayTeamId]
-  const [picker, setPicker] = useState(null) // { kind:'attribute', index } | { kind:'card' } | null
+  const [picker, setPicker] = useState(null) // { kind:'attribute', id } | { kind:'card' } | null
   // Two-tap in-app confirm for Reset/Publish (replaces window.confirm, which
   // silently no-ops on tablet/PWA contexts that suppress native dialogs).
   const [armed, setArmed] = useState(null) // 'reset' | 'publish' | null
@@ -160,27 +167,27 @@ function SportRemote({ fixture, sport }) {
 
       {picker?.kind === 'attribute' && (
         <AttributePicker
-          fixture={fixture} sport={sport} index={picker.index}
-          team={teams[s.scorers[picker.index]?.teamId]}
+          fixture={fixture} sport={sport} id={picker.id}
+          team={teams[s.scorers.find((sc) => sc.id === picker.id)?.teamId]}
           onDone={() => setPicker(null)}
         />
       )}
 
       {(s.scorers?.length > 0 || s.cards?.length > 0) && (
         <div className="sd-events">
-          {s.scorers.map((sc, i) => (
+          {s.scorers.map((sc) => (
             <span className={`sd-ev sd-ev-scorer${sc.name == null ? ' is-unattributed' : ''}`}
-              key={`s${i}`} style={{ '--tc': teams[sc.teamId]?.colorHex }}>
+              key={sc.id} style={{ '--tc': teams[sc.teamId]?.colorHex }}>
               {locked ? (
                 <span className="sd-ev-label">{sc.minute ? `${sc.minute}' ` : ''}{sc.name || 'Goal'}</span>
               ) : (
-                <button className="sd-ev-label" onClick={() => setPicker({ kind: 'attribute', index: i })}>
+                <button className="sd-ev-label" onClick={() => setPicker({ kind: 'attribute', id: sc.id })}>
                   {sc.minute ? `${sc.minute}' ` : ''}{sc.name || 'Who scored?'}
                 </button>
               )}
               {!locked && (
                 <button className="sd-ev-x" aria-label="Remove goal"
-                  onClick={() => actions.removeGoal(fixture.id, sport, i)}>×</button>
+                  onClick={() => actions.removeGoal(fixture.id, sport, sc.id)}>×</button>
               )}
             </span>
           ))}
@@ -244,13 +251,13 @@ function SportRemote({ fixture, sport }) {
 // in who scored, editing that one scorers[] entry in place. Never creates a
 // goal or touches the score, so it's just as fine to cancel out of as to
 // finish — the score was never waiting on it.
-function AttributePicker({ fixture, sport, index, team, onDone }) {
+function AttributePicker({ fixture, sport, id, team, onDone }) {
   const { actions } = useData()
   const roster = (team?.players || []).filter((p) => p.sport === sport && p.role === 'player')
   const [freeText, setFreeText] = useState('')
 
   const commit = (name, playerId = null) => {
-    actions.attributeScorer(fixture.id, sport, index, { playerId, name })
+    actions.attributeScorer(fixture.id, sport, id, { playerId, name })
     onDone()
   }
 

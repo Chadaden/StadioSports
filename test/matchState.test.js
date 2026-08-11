@@ -15,6 +15,7 @@ import {
   pauseClockState,
   resetClockState,
   reopenSportState,
+  removeGoalState,
   removeLatestGoalState,
   resumeClockState,
   sinBinRemainingSeconds,
@@ -186,11 +187,24 @@ test('a netball goal records the scoring side for later team-specific attributio
   })
   assert.equal(scored.home, 0)
   assert.equal(scored.away, 1)
-  assert.deepEqual(scored.scorers, [{ playerId: null, teamId: 'waterfall', name: null, minute: 4 }])
+  assert.equal(scored.scorers.length, 1)
+  assert.equal(typeof scored.scorers[0].id, 'string')
+  assert.ok(scored.scorers[0].id.length > 0)
   assert.deepEqual(
-    attributeScorerState(scored, 0, { playerId: 'wat-07', name: 'Tayler Skye Thomas' }).scorers[0],
-    { playerId: 'wat-07', teamId: 'waterfall', name: 'Tayler Skye Thomas', minute: 4 },
+    { ...scored.scorers[0], id: undefined },
+    { id: undefined, playerId: null, teamId: 'waterfall', name: null, minute: 4 },
   )
+  assert.deepEqual(
+    attributeScorerState(scored, scored.scorers[0].id, { playerId: 'wat-07', name: 'Tayler Skye Thomas' }).scorers[0],
+    { ...scored.scorers[0], playerId: 'wat-07', name: 'Tayler Skye Thomas' },
+  )
+})
+
+test('addGoalState assigns each scorer a distinct stable id', () => {
+  const one = addGoalState(baseSport(), 'home', { playerId: null, teamId: 'centurion', name: null, minute: 1 })
+  const two = addGoalState(one, 'home', { playerId: null, teamId: 'centurion', name: null, minute: 2 })
+  const [first, second] = two.scorers
+  assert.notEqual(first.id, second.id)
 })
 
 test('removing a netball goal removes that side’s latest scorer event too', () => {
@@ -211,11 +225,11 @@ test('attributing a scorer edits one entry in place without touching the score o
   const sport = {
     ...baseSport(), status: 'live', home: 2, away: 0,
     scorers: [
-      { playerId: null, teamId: 'musgrave', name: null, minute: 12 },
-      { playerId: null, teamId: 'musgrave', name: null, minute: 34 },
+      { id: 's1', playerId: null, teamId: 'musgrave', name: null, minute: 12 },
+      { id: 's2', playerId: null, teamId: 'musgrave', name: null, minute: 34 },
     ],
   }
-  const attributed = attributeScorerState(sport, 1, { playerId: 'mus-02', name: 'Hamza Amla' })
+  const attributed = attributeScorerState(sport, 's2', { playerId: 'mus-02', name: 'Hamza Amla' })
   assert.equal(attributed.home, 2)
   assert.equal(attributed.away, 0)
   assert.equal(attributed.scorers[0].name, null)
@@ -223,10 +237,54 @@ test('attributing a scorer edits one entry in place without touching the score o
   assert.equal(attributed.scorers[1].playerId, 'mus-02')
 })
 
-test('attributing an out-of-range index is a no-op', () => {
-  const sport = { ...baseSport(), scorers: [{ teamId: 'musgrave', name: null }] }
-  const unchanged = attributeScorerState(sport, 5, { playerId: 'x', name: 'X' })
+test('attributing an unknown scorer id is a no-op', () => {
+  const sport = { ...baseSport(), scorers: [{ id: 's1', teamId: 'musgrave', name: null }] }
+  const unchanged = attributeScorerState(sport, 'does-not-exist', { playerId: 'x', name: 'X' })
   assert.deepEqual(unchanged, sport)
+})
+
+test('removeGoalState drops the matching scorer and decrements the right side by its own id', () => {
+  const sport = {
+    ...baseSport(), home: 1, away: 1,
+    scorers: [
+      { id: 'g1', teamId: 'centurion', name: 'Home scorer' },
+      { id: 'g2', teamId: 'waterfall', name: 'Away scorer' },
+    ],
+  }
+  const corrected = removeGoalState(sport, 'g2', 'waterfall')
+  assert.equal(corrected.home, 1)
+  assert.equal(corrected.away, 0)
+  assert.deepEqual(corrected.scorers.map((sc) => sc.id), ['g1'])
+})
+
+test('removeGoalState is a no-op for an id that no longer exists', () => {
+  const sport = { ...baseSport(), away: 1, scorers: [{ id: 'g1', teamId: 'waterfall', name: 'Scorer' }] }
+  const unchanged = removeGoalState(sport, 'already-removed', 'waterfall')
+  assert.deepEqual(unchanged, sport)
+})
+
+test('removing/attributing by id is unaffected when a concurrent edit shifts array positions', () => {
+  // Two scorekeeper devices see the same three-goal state. Device A removes
+  // the middle goal (g2) first; its write lands. Device B, still showing the
+  // original three-entry array, then attributes what it displayed as index 2
+  // (g3) — by id this still hits g3 correctly, where an index-based write
+  // would have landed on whatever shifted into index 2 after g2's removal.
+  const original = {
+    ...baseSport(), home: 1, away: 2,
+    scorers: [
+      { id: 'g1', teamId: 'centurion', name: null },
+      { id: 'g2', teamId: 'waterfall', name: null },
+      { id: 'g3', teamId: 'waterfall', name: null },
+    ],
+  }
+  const afterDeviceARemoval = removeGoalState(original, 'g2', 'waterfall')
+  assert.deepEqual(afterDeviceARemoval.scorers.map((sc) => sc.id), ['g1', 'g3'])
+
+  const afterDeviceBAttribution = attributeScorerState(
+    afterDeviceARemoval, 'g3', { playerId: 'wat-01', name: 'Correct Scorer' },
+  )
+  assert.equal(afterDeviceBAttribution.scorers.find((sc) => sc.id === 'g3').name, 'Correct Scorer')
+  assert.equal(afterDeviceBAttribution.scorers.find((sc) => sc.id === 'g1').name, null)
 })
 
 test('sportHomeAwayIds falls back to the fixture-level pairing until a sport auto-populates its own', () => {

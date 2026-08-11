@@ -5,6 +5,15 @@
 export const HALF_SECONDS = 10 * 60
 export const CARD_SIN_BIN_SECONDS = { yellow: 2 * 60, red: 10 * 60 }
 
+// Stable per-entry id so a scorer/card can be found by identity instead of
+// array position — position shifts under concurrent scorekeeper edits (one
+// device removing an entry while another is mid-tap on it), but an id
+// doesn't.
+function randomEventId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID()
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+}
+
 export const stoppedFirstHalfClock = () => ({
   phase: 'h1',
   runningSince: null,
@@ -89,13 +98,15 @@ export function adjustScoreState(sport, side, delta) {
 // on tap via addGoal with an unknown/null scorer. This only ever edits the
 // name/playerId on one already-logged scorers[] entry in place — it never
 // touches the score, and any entry (not just the most recent) stays
-// individually attributable.
-export function attributeScorerState(sport, index, attribution) {
+// individually attributable. Keyed by the entry's stable id, not its array
+// position, so a concurrent add/remove on another scorekeeper device can't
+// shift the array out from under this edit.
+export function attributeScorerState(sport, scorerId, attribution) {
   const scorers = sport.scorers || []
-  if (!scorers[index]) return sport
+  if (!scorers.some((sc) => sc.id === scorerId)) return sport
   return {
     ...sport,
-    scorers: scorers.map((sc, i) => (i === index ? { ...sc, ...attribution } : sc)),
+    scorers: scorers.map((sc) => (sc.id === scorerId ? { ...sc, ...attribution } : sc)),
   }
 }
 
@@ -125,7 +136,7 @@ export function addGoalState(sport, side, scorer) {
   return {
     ...sport,
     [side]: (Number(sport[side]) || 0) + 1,
-    scorers: [...(sport.scorers || []), scorer],
+    scorers: [...(sport.scorers || []), { id: randomEventId(), ...scorer }],
   }
 }
 
@@ -137,6 +148,24 @@ export function removeLatestGoalState(sport, side, teamId) {
     ...sport,
     [side]: Math.max(0, (Number(sport[side]) || 0) - 1),
     scorers: scorerIndex < 0 ? scorers : scorers.filter((_, index) => index !== scorerIndex),
+  }
+}
+
+// Undo a specific mis-tapped goal by its stable id (soccer's event log, not
+// netball's side-only "remove latest" above) — drops the scorer entry AND the
+// point in the same write. Id-based rather than array-index-based so a
+// concurrent removal from another scorekeeper device (shrinking or
+// reordering the array between this button being tapped and this write
+// landing) can't make it edit the wrong entry.
+export function removeGoalState(sport, scorerId, awayTeamId) {
+  const scorers = sport.scorers || []
+  const entry = scorers.find((sc) => sc.id === scorerId)
+  if (!entry) return sport
+  const side = entry.teamId === awayTeamId ? 'away' : 'home'
+  return {
+    ...sport,
+    [side]: Math.max(0, (Number(sport[side]) || 0) - 1),
+    scorers: scorers.filter((sc) => sc.id !== scorerId),
   }
 }
 
@@ -197,6 +226,7 @@ export function addSinBinCardState(sport, card, issuedAt = new Date().toISOStrin
     cards: [
       ...(sport.cards || []),
       {
+        id: randomEventId(),
         ...card,
         issuedAt,
         sinBinSeconds,

@@ -4,6 +4,7 @@
 // each ticket (SdSkControls) and the existing MANCO report button/modal.
 // Icon-free: sports are named, states are words, colour carries identity.
 
+import { useMemo } from 'react'
 import { useData, useTeamMap } from '../../store/DataProvider'
 import { useIsScorekeeper } from '../../store/RoleContext'
 import { formatClock, useClockTick } from '../../lib/clock'
@@ -84,7 +85,32 @@ function ScorekeeperContext({ fixtures, standingsFixtures, teams, event }) {
 }
 
 function CompactTable({ sport, fixtures, teams, event }) {
-  const rows = computeStandings(sport, fixtures, teams, event)
+  // computeStandings (plus its own head-to-head pass) only ever reads
+  // round-robin fixtures' FINAL results for this sport — live scores, cards,
+  // clocks and playoff/final pairings don't affect it. This component
+  // re-renders on every fixtures update, i.e. every goal/card/clock write
+  // from any scorekeeper device, so recomputing the full table each time is
+  // wasted work on a device meant to stay open for hours. Memoize on a
+  // lightweight signature of just the round-robin results instead, so a
+  // mid-match tick doesn't retrigger the rebuild.
+  const resultsSignature = useMemo(
+    () => fixtures
+      .filter((fx) => fx.round === 'roundRobin')
+      .map((fx) => {
+        const s = fx[sport]
+        return s?.status === 'final' ? `${fx.id}:${s.home}-${s.away}` : `${fx.id}:_`
+      })
+      .join('|'),
+    [fixtures, sport],
+  )
+  // resultsSignature stands in for `fixtures` here: it only changes when a
+  // round-robin result for this sport does, which is the only part of
+  // `fixtures` computeStandings reads.
+  const rows = useMemo(
+    () => computeStandings(sport, fixtures, teams, event),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [resultsSignature, sport, teams, event],
+  )
   return (
     <section className="sd-sk-context-section">
       <b>{sport} table</b>
