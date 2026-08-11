@@ -9,6 +9,8 @@ import {
   attributeScorerState,
   canPublishSport,
   canStartSecondHalf,
+  finalChampion,
+  finalChampions,
   fixtureOverallStatus,
   headlinePairing,
   isAlarmActive,
@@ -78,11 +80,29 @@ test('the halftime/full-time alarm fires once the half in progress reaches its o
   assert.equal(isAlarmActive({ phase: 'h2', runningSince: '2026-07-17T10:15:00.000Z', baseSeconds: 0 }, Date.parse('2026-07-17T10:25:00.000Z')), true)
 })
 
-test('publishing is available only after a paused second half reaches ten minutes', () => {
-  assert.equal(canPublishSport({ ...baseSport(), status: 'live', clock: { phase: 'h1', runningSince: null, baseSeconds: 600 } }), false)
-  assert.equal(canPublishSport({ ...baseSport(), status: 'live', clock: { phase: 'h2', runningSince: '2026-07-17T10:00:00.000Z', baseSeconds: 600 } }), false)
-  assert.equal(canPublishSport({ ...baseSport(), status: 'live', clock: { phase: 'h2', runningSince: null, baseSeconds: 599 } }), false)
-  assert.equal(canPublishSport({ ...baseSport(), status: 'live', clock: { phase: 'h2', runningSince: null, baseSeconds: 615 } }), true)
+test('standard publishing is available only after a paused second half reaches ten minutes', () => {
+  const normal = { allowInstantPublish: false }
+  assert.equal(canPublishSport({ ...baseSport(), status: 'live', clock: { phase: 'h1', runningSince: null, baseSeconds: 600 } }, Date.now(), normal), false)
+  assert.equal(canPublishSport({ ...baseSport(), status: 'live', clock: { phase: 'h2', runningSince: '2026-07-17T10:00:00.000Z', baseSeconds: 600 } }, Date.now(), normal), false)
+  assert.equal(canPublishSport({ ...baseSport(), status: 'live', clock: { phase: 'h2', runningSince: null, baseSeconds: 599 } }, Date.now(), normal), false)
+  assert.equal(canPublishSport({ ...baseSport(), status: 'live', clock: { phase: 'h2', runningSince: null, baseSeconds: 615 } }, Date.now(), normal), true)
+})
+
+test('publishing defaults to the standard gate now the demo bypass window is closed', () => {
+  // DEMO_INSTANT_PUBLISH_ENABLED is off for the real event — calling without
+  // an explicit override must fall through to the standard 10-minute gate,
+  // not the demo bypass, so a scorekeeper can no longer publish a match
+  // before it's actually finished.
+  assert.equal(canPublishSport({ ...baseSport(), status: 'live', clock: { phase: 'h1', runningSince: null, baseSeconds: 12 } }), false)
+  assert.equal(canPublishSport({ ...baseSport(), status: 'upcoming' }), false)
+  assert.equal(canPublishSport({ ...baseSport(), status: 'final' }), false)
+})
+
+test('the instant-publish override still works when explicitly requested', () => {
+  const demo = { allowInstantPublish: true }
+  assert.equal(canPublishSport({ ...baseSport(), status: 'upcoming' }, Date.now(), demo), false)
+  assert.equal(canPublishSport({ ...baseSport(), status: 'final' }, Date.now(), demo), false)
+  assert.equal(canPublishSport({ ...baseSport(), status: 'live', clock: { phase: 'h1', runningSince: null, baseSeconds: 12 } }, Date.now(), demo), true)
 })
 
 test('reopening a final preserves its elapsed second half and allows it to be published again', () => {
@@ -342,4 +362,28 @@ test('fixtureOverallStatus is final only once both sports are, live if either is
     'final',
   )
   assert.equal(fixtureOverallStatus(undefined), 'upcoming')
+})
+
+test('finalChampion resolves each sport champion only from a published final', () => {
+  const teams = [
+    { id: 'centurion', name: 'Centurion' },
+    { id: 'musgrave', name: 'Musgrave' },
+    { id: 'waterfall', name: 'Waterfall' },
+  ]
+  const fixtures = [
+    {
+      id: 'm8',
+      round: 'final',
+      homeTeamId: null,
+      awayTeamId: null,
+      soccer: { status: 'final', home: 2, away: 1, homeTeamId: 'centurion', awayTeamId: 'musgrave' },
+      netball: { status: 'final', home: 11, away: 16, homeTeamId: 'waterfall', awayTeamId: 'centurion' },
+    },
+  ]
+
+  assert.equal(finalChampion('soccer', fixtures, teams).team.name, 'Centurion')
+  assert.equal(finalChampion('netball', fixtures, teams).team.name, 'Centurion')
+  assert.deepEqual(finalChampions(fixtures, teams).map((champion) => champion.sport), ['soccer', 'netball'])
+  assert.equal(finalChampion('soccer', [{ ...fixtures[0], soccer: { ...fixtures[0].soccer, status: 'live' } }], teams), null)
+  assert.equal(finalChampion('soccer', [{ ...fixtures[0], soccer: { ...fixtures[0].soccer, home: 1, away: 1 } }], teams), null)
 })

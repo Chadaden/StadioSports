@@ -4,6 +4,12 @@
 
 export const HALF_SECONDS = 10 * 60
 export const CARD_SIN_BIN_SECONDS = { yellow: 2 * 60, red: 10 * 60 }
+// Temporary client-demo bypass for the 6 Aug stakeholder meeting: scorekeepers
+// could publish a live sport immediately after simulating a few goals. That
+// demo window is closed — disabled ahead of the real event so a scorekeeper
+// can no longer publish a match before it's actually finished. Remove this
+// flag (and its callers) entirely once nothing still checks it.
+export const DEMO_INSTANT_PUBLISH_ENABLED = false
 
 // Stable per-entry id so a scorer/card can be found by identity instead of
 // array position — position shifts under concurrent scorekeeper edits (one
@@ -173,7 +179,11 @@ export function removeGoalState(sport, scorerId, awayTeamId) {
 // second half: the clock must have reached ten minutes and be explicitly
 // paused. The overrun remains visible until that pause, so the timer itself
 // never decides when play ends.
-export function canPublishSport(sport, now = Date.now()) {
+export function canPublishSport(sport, now = Date.now(), options = {}) {
+  const allowInstantPublish = options.allowInstantPublish ?? DEMO_INSTANT_PUBLISH_ENABLED
+  if (allowInstantPublish && sport?.status === 'live') {
+    return true
+  }
   const clock = sport?.clock
   return sport?.status === 'live'
     && clock?.phase === 'h2'
@@ -294,6 +304,24 @@ export function fixtureOverallStatus(fixture) {
   if (fixture?.soccer?.status === 'live' || fixture?.netball?.status === 'live') return 'live'
   if (fixture?.soccer?.status === 'final' && fixture?.netball?.status === 'final') return 'final'
   return 'upcoming'
+}
+
+export function finalChampion(sport, fixtures = [], teams = []) {
+  const final = fixtures.find((fixture) => fixture.round === 'final')
+  const result = final?.[sport]
+  if (!final || result?.status !== 'final') return null
+  if (Number(result.home) === Number(result.away)) return null
+
+  const { homeTeamId, awayTeamId } = sportHomeAwayIds(final, sport)
+  const championId = Number(result.home) > Number(result.away) ? homeTeamId : awayTeamId
+  const team = teams.find((candidate) => candidate.id === championId)
+  return team ? { sport, team, fixtureId: final.id, score: { home: result.home, away: result.away } } : null
+}
+
+export function finalChampions(fixtures = [], teams = []) {
+  return ['soccer', 'netball']
+    .map((sport) => finalChampion(sport, fixtures, teams))
+    .filter(Boolean)
 }
 
 export function formatDurationSeconds(value) {
