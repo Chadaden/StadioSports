@@ -10,11 +10,10 @@
 // Elapsed time is derived, never ticked in the database — one write at each
 // whistle, every device computes the same minute from its own clock.
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   elapsedClockSeconds,
   formatDurationSeconds,
-  shouldAlertFirstHalfEnd,
 } from './matchState'
 
 export const PHASE_LABELS = {
@@ -58,18 +57,4 @@ export function useSecondTick(active) {
 export function useClockTick(...clocks) {
   const running = clocks.some((c) => isClockRunning(c))
   return useSecondTick(running)
-}
-
-// Browser alert is deliberately local-only: it warns the active scorekeeper
-// once and never creates per-second database writes or spectator pop-ups.
-export function useFirstHalfAlert(clock, now) {
-  const alerted = useRef(false)
-  const reached = shouldAlertFirstHalfEnd(clock, now)
-  useEffect(() => {
-    if (clock?.phase !== 'h1' || elapsedSeconds(clock, now) < 1) alerted.current = false
-    if (!reached || alerted.current) return
-    alerted.current = true
-    window.alert('First half has reached 10:00. Pause the timer when the half ends.')
-  }, [clock, now, reached])
-  return reached
 }

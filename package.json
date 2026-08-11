@@ -4,7 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "backfill:centurion-netball": "node scripts/backfill-centurion-netball.mjs",
     "backfill:shirt-numbers": "node scripts/backfill-shirt-numbers.mjs",
+    "patch:team-colors": "node scripts/patch-team-colors.mjs",
     "flash:test-data:dry-run": "node scripts/flash-test-data.mjs",
     "dev": "node node_modules/vite/bin/vite.js",
     "build": "node node_modules/vite/bin/vite.js build",

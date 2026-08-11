@@ -30,11 +30,30 @@
   --pink: #e77bb0;
   --red: #ed1c24;
 
-  /* team = spectrum */
-  --cen: #3bb1e5;
-  --mus: #96c93e;
-  --dur: #ed1c24;
-  --wat: #8a63a9;
+  /* STADIO Higher Education colour codes (April 2026 update) — locked per-school
+     team colours, sport-panel accents and match-state colours. Kept separate from
+     the generic "spectrum" tokens above, which remain general-purpose chrome/status
+     accents. See STADIO-sports-hub-colour-system.md §7. */
+  --stadio-grey-primary:   #53575B;
+  --stadio-grey-secondary: #9BA0A6;
+
+  --team-musgrave:    #3CB4E7; /* blue   */
+  --team-durbanville: #9ACA3C; /* green  */
+  --team-waterfall:   #8D64AA; /* purple */
+  --team-centurion:   #BF4956; /* red (Law rose) */
+
+  --sport-netball: #4FBFA5; /* teal   */
+  --sport-soccer:  #F7941D; /* orange */
+
+  --card-yellow:    #FEDD00;
+  --card-red:       #E44126;
+  --alarm-halftime: #FEDD00; /* full-panel pulse, scorekeeper view only */
+
+  /* team = spectrum (kept in sync with the locked table above) */
+  --cen: var(--team-centurion);
+  --mus: var(--team-musgrave);
+  --dur: var(--team-durbanville);
+  --wat: var(--team-waterfall);
 
   /* semantic status (§4) */
   --status-live: var(--red);
@@ -43,9 +62,11 @@
   --status-info: var(--sky);
 
   /* sport accents — used everywhere the two sports sit side by side, so a
-     glance tells them apart (client request, 14 Jul) */
-  --soccer: var(--sky);
-  --netball: var(--pink);
+     glance tells them apart (client request, 14 Jul). Must never reuse a team
+     colour (STADIO colour system §3), so these point at the dedicated sport
+     tokens above rather than the generic spectrum. */
+  --soccer: var(--sport-soccer);
+  --netball: var(--sport-netball);
 
   --radius-card: 16px;
   --radius-control: 10px;

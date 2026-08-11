@@ -1,6 +1,8 @@
 // Standings computed on read from fixtures (§7) — never stored as state.
 // Uses event.points per sport and event.tieBreakers ordering.
 
+import { elapsedClockSeconds } from './matchState.js'
+
 const ZERO = () => ({
   played: 0, won: 0, drawn: 0, lost: 0,
   for: 0, against: 0, diff: 0, points: 0,
@@ -91,6 +93,74 @@ export function projectBracket(sport, fixtures, teams, event) {
     final: [table[0]?.team, table[1]?.team],
     playoff: [table[2]?.team, table[3]?.team],
   }
+}
+
+/**
+ * True once every round-robin fixture has a final result for this sport (§8)
+ * — the trigger for auto-populating that sport's playoff/final pairings.
+ * @param {string} sport - 'soccer' | 'netball'
+ */
+export function roundRobinComplete(sport, fixtures) {
+  const roundRobinFixtures = fixtures.filter((fx) => fx.round === 'roundRobin')
+  return roundRobinFixtures.length > 0
+    && roundRobinFixtures.every((fx) => fx[sport]?.status === 'final')
+}
+
+/**
+ * Auto-calculated playoff/final team ids for one sport (§8), once its own
+ * round-robin is complete — soccer and netball run separate tables, so each
+ * sport's pairing is computed and returned independently. 1st vs 2nd contest
+ * the final; 3rd vs 4th contest the playoff. Returns null until
+ * roundRobinComplete(sport, fixtures).
+ * @param {string} sport - 'soccer' | 'netball'
+ * @returns {{ final: {homeTeamId, awayTeamId}, playoff: {homeTeamId, awayTeamId} } | null}
+ */
+export function computeAutoPairings(sport, fixtures, teams, event) {
+  if (!roundRobinComplete(sport, fixtures)) return null
+  const table = computeStandings(sport, fixtures, teams, event)
+  return {
+    final: { homeTeamId: table[0]?.team.id ?? null, awayTeamId: table[1]?.team.id ?? null },
+    playoff: { homeTeamId: table[2]?.team.id ?? null, awayTeamId: table[3]?.team.id ?? null },
+  }
+}
+
+// Builds the fixture updates for publishing one sport result. Kept pure so the
+// Firebase transaction and demo mode follow the exact same pairing rules.
+// Knockout slots are only re-seeded while that sport is still upcoming: a
+// scorekeeper correcting an old round-robin result must never relabel a live
+// or final playoff/final record.
+export function buildPublicationPatches(fixtureId, sport, fixtures, teams, event, now = Date.now()) {
+  const fixture = fixtures.find((fx) => fx.id === fixtureId)
+  if (!fixture?.[sport]) return null
+
+  const publishedSport = {
+    ...fixture[sport],
+    scorers: [...(fixture[sport].scorers || [])],
+    cards: [...(fixture[sport].cards || [])],
+    status: 'final',
+    clock: fixture[sport].clock
+      ? { phase: 'ft', runningSince: null, baseSeconds: Math.round(elapsedClockSeconds(fixture[sport].clock, now)) }
+      : null,
+  }
+  const patches = [{ id: fixtureId, patch: publishedSport }]
+
+  if (fixture.round !== 'roundRobin') return patches
+
+  const nextFixtures = fixtures.map((fx) => (fx.id === fixtureId ? { ...fx, [sport]: publishedSport } : fx))
+  const pairings = computeAutoPairings(sport, nextFixtures, teams, event)
+  if (!pairings) return patches
+
+  const addUpcomingPairing = (round, pairing) => {
+    const target = fixtures.find((fx) => fx.round === round)
+    const targetSport = target?.[sport]
+    if (!targetSport || targetSport.status !== 'upcoming') return
+    if (targetSport.homeTeamId === pairing.homeTeamId && targetSport.awayTeamId === pairing.awayTeamId) return
+    patches.push({ id: target.id, patch: { ...targetSport, ...pairing } })
+  }
+
+  addUpcomingPairing('playoff', pairings.playoff)
+  addUpcomingPairing('final', pairings.final)
+  return patches
 }
 
 // headToHead[winner][loser] = number of wins between that pair (round-robin only).

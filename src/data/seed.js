@@ -11,9 +11,9 @@
 // subcollection — never into any publicly readable doc. ID numbers, DOB,
 // gender and emails are deliberately not ingested at all.
 //
-// Data readiness: Durbanville (21), Musgrave (20) and Waterfall (17) rosters
-// are loaded from the sheet. Centurion (host) has not submitted players yet —
-// rosterLoaded:false renders the clean "Roster pending" state.
+// Data readiness: all submitted public roster rows are loaded. Centurion has
+// soccer from the original sheet plus netball from Centurion_netball.xlsx
+// received 6 Aug. Sensitive columns from that sheet were not committed.
 // ============================================================================
 
 export const EVENT_ID = 'national-sports-day-2026'
@@ -42,14 +42,16 @@ export const event = {
 }
 
 // ---------- teams (events/{eventId}/teams/{teamId}) ----------
-// Colours snapped to the STADIO spectrum (§4) — provisional, one-line swap.
+// Colours locked to the STADIO Higher Education colour codes (April 2026 update,
+// STADIO-sports-hub-colour-system.md §2) — fixed per school, not home/away, and
+// reserved for team identity only (never reused for sport-panel accents).
 export const teams = [
   {
     id: 'centurion',
     name: 'Centurion',
     code: 'CEN',
-    colorKey: 'sky',
-    colorHex: '#3BB1E5',
+    colorKey: 'law-rose',
+    colorHex: '#BF4956',
     type: 'host',
     travel: null,
     rosterLoaded: true,
@@ -58,8 +60,8 @@ export const teams = [
     id: 'musgrave',
     name: 'Musgrave',
     code: 'MUS',
-    colorKey: 'lime',
-    colorHex: '#96C93E',
+    colorKey: 'blue',
+    colorHex: '#3CB4E7',
     type: 'travel',
     travel: {
       fromAirport: 'King Shaka International',
@@ -72,8 +74,8 @@ export const teams = [
     id: 'durbanville',
     name: 'Durbanville',
     code: 'DUR',
-    colorKey: 'red',
-    colorHex: '#ED1C24',
+    colorKey: 'green',
+    colorHex: '#9ACA3C',
     type: 'travel',
     travel: {
       fromAirport: 'Cape Town International',
@@ -87,7 +89,7 @@ export const teams = [
     name: 'Waterfall',
     code: 'WAT',
     colorKey: 'purple',
-    colorHex: '#8A63A9',
+    colorHex: '#8D64AA',
     type: 'local',
     travel: null,
     rosterLoaded: true,
@@ -98,9 +100,10 @@ export const teams = [
 // All campuses from Inter_campus_sports_dayChad.xlsx — names / sport / role /
 // shirtNumber / isGK only; the sensitive columns are ingested into the git-ignored
 // data/privateProfiles.local.js keyed by these same ids (manager-only, §9).
-// Centurion: soccer squad only, from the sheet's "Player number details
-// soccer" tab (14 Jul) — no Traveling Party row yet (host, not travelling),
-// so no netball/support roster or private profile until that's submitted.
+// Centurion: soccer from the sheet's "Player number details soccer" tab
+// (14 Jul), plus netball from Centurion_netball.xlsx (6 Aug). The uploaded
+// netball sheet also included ID number, DOB, gender, cell and email columns;
+// those stay out of this public repo.
 export const players = {
   centurion: [
     { id: 'cen-01', firstName: 'Bono hyphen', surname: 'Kholophe', role: 'player', sport: 'soccer', shirtNumber: 2, isGK: false },
@@ -111,6 +114,15 @@ export const players = {
     { id: 'cen-06', firstName: 'Mohau', surname: 'Keoagile', role: 'player', sport: 'soccer', shirtNumber: 7, isGK: false },
     { id: 'cen-07', firstName: 'Murangi', surname: 'Mashapha', role: 'player', sport: 'soccer', shirtNumber: 1, isGK: false },
     { id: 'cen-08', firstName: 'Tshegofatso', surname: 'Masubelele', role: 'player', sport: 'soccer', shirtNumber: 8, isGK: false },
+    { id: 'cen-09', firstName: 'Ofentse', surname: 'Segole', role: 'player', sport: 'netball', isGK: false },
+    { id: 'cen-10', firstName: 'Cebelihle', surname: 'Zwane', role: 'player', sport: 'netball', isGK: false },
+    { id: 'cen-11', firstName: 'Khonani', surname: 'Munzhelele', role: 'player', sport: 'netball', isGK: false },
+    { id: 'cen-12', firstName: 'Thabang', surname: 'Ntsabeng', role: 'player', sport: 'netball', isGK: false },
+    { id: 'cen-13', firstName: 'Mmaskabane', surname: 'Theledi', role: 'player', sport: 'netball', isGK: false },
+    { id: 'cen-14', firstName: 'Rorisang', surname: 'Kabane', role: 'player', sport: 'netball', isGK: false },
+    { id: 'cen-15', firstName: 'Bianca', surname: 'Ngwabela', role: 'player', sport: 'netball', isGK: false },
+    { id: 'cen-16', firstName: 'Vuthlarhi Tercia', surname: 'Shingange', role: 'player', sport: 'netball', isGK: false },
+    { id: 'cen-17', firstName: 'Khuselo', surname: 'Nkala', role: 'player', sport: 'netball', isGK: false },
   ],
   musgrave: [
     { id: 'mus-01', firstName: 'Quaide', surname: 'Salie', role: 'support', sport: null, isGK: false },
@@ -180,10 +192,19 @@ export const players = {
 
 // ---------- fixtures (events/{eventId}/fixtures/{fixtureId}) ----------
 // Round-robin (m1–m6) → 3rd/4th playoff (m7) → final (m8), pairings and slot
-// times from the sheet's Program tab. Same pairing drives both sports.
+// times from the sheet's Program tab. Round-robin pairings are fixed and
+// shared by both sports (fixture-level homeTeamId/awayTeamId below). The
+// playoff/final slots instead carry a per-sport homeTeamId/awayTeamId (null
+// until auto-populated, see lib/standings.js computeAutoPairings), since
+// soccer and netball run separate round-robin tables and can seat different
+// teams in the same match slot (§8). Screens resolve the effective pairing
+// for a sport via lib/matchState.js sportHomeAwayIds().
 // `clock` powers the scorekeeper match timer (see lib/clock.js): null until
 // kick-off, then { phase, runningSince, baseSeconds }.
-const blankSport = () => ({ status: 'upcoming', home: 0, away: 0, scorers: [], cards: [], clock: null })
+const blankSport = () => ({
+  status: 'upcoming', home: 0, away: 0, scorers: [], cards: [], clock: null,
+  homeTeamId: null, awayTeamId: null,
+})
 
 export const fixtures = [
   { id: 'm1', matchNo: 1, slotTime: '10:30', round: 'roundRobin', homeTeamId: 'centurion', awayTeamId: 'waterfall', soccer: blankSport(), netball: blankSport() },
@@ -200,7 +221,7 @@ export const fixtures = [
 // ---------- travel / attendance (events/{eventId}/travel/{teamId}) ----------
 // Local teams collapse to "Squad present"; travel teams show the milestone rail.
 export const travel = {
-  centurion: { status: 'local', milestone: null, attendance: { present: 0, total: 21, markedAllAt: null }, etaISO: null, travellers: 0 },
+  centurion: { status: 'local', milestone: null, attendance: { present: 0, total: 17, markedAllAt: null }, etaISO: null, travellers: 0 },
   waterfall: { status: 'local', milestone: null, attendance: { present: 0, total: 17, markedAllAt: null }, etaISO: null, travellers: 0 },
   musgrave: { status: 'in_transit', milestone: 'checked_in', attendance: { present: 0, total: 20, markedAllAt: null }, etaISO: null, travellers: 20 },
   durbanville: { status: 'in_transit', milestone: 'checked_in', attendance: { present: 0, total: 21, markedAllAt: null }, etaISO: null, travellers: 21 },

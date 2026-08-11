@@ -46,6 +46,20 @@
   --sd-purple: #8a63a9;
   --sd-shadow-sm: 0 1px 2px rgba(16, 22, 29, 0.06), 0 2px 8px -2px rgba(16, 22, 29, 0.06);
   --sd-shadow-md: 0 14px 28px -14px rgba(16, 22, 29, 0.22), 0 4px 10px -6px rgba(16, 22, 29, 0.1);
+
+  /* STADIO Higher Education colour codes (April 2026 update) — locked team,
+     sport-panel and match-state colours. See STADIO-sports-hub-colour-system.md. */
+  --team-musgrave:    #3CB4E7;
+  --team-durbanville: #9ACA3C;
+  --team-waterfall:   #8D64AA;
+  --team-centurion:   #BF4956;
+
+  --sport-netball: #4FBFA5;
+  --sport-soccer:  #F7941D;
+
+  --card-yellow:    #FEDD00;
+  --card-red:       #E44126;
+  --alarm-halftime: #FEDD00;
 }
 
 /* ---- shell ---------------------------------------------------------------- */
@@ -133,71 +147,80 @@
 .sd-crest-sm { width: 24px; height: 24px; border-radius: 7px; font-size: 8.5px; }
 
 /* ============================================================================
-   THE BOARD — live hero scoreboard
+   THE BOARD — soccer and netball each get their own equal-weight board (§7),
+   stacked in .sd-twoup. Sized down from the old single-hero board so both
+   fit without the page feeling like two competing giants, but still well
+   above the old "secondary strip" scale (22px) it replaces.
    ============================================================================ */
-.sd-board { margin-top: 20px; }
-.sd-board-meta { display: flex; align-items: center; justify-content: space-between; }
+.sd-twoup { display: flex; flex-direction: column; gap: 16px; margin-top: 18px; }
+
+.sd-board { }
+.sd-board + .sd-board { padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.14); }
+.sd-board-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sd-board-sport-tag {
+  font-family: var(--sd-anton); font-weight: 400;
+  font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase;
+  padding: 3px 11px; border-radius: 999px; color: #fff;
+}
+.sd-board-sport-tag.sport-soccer { background: var(--sport-soccer); }
+.sd-board-sport-tag.sport-netball { background: var(--sport-netball); }
 .sd-board-match {
-  font-family: var(--sd-anton); font-size: 15px; letter-spacing: 0.08em;
+  margin-left: auto;
+  font-family: var(--sd-anton); font-size: 13px; letter-spacing: 0.08em;
   color: rgba(255, 255, 255, 0.45);
 }
 
 .sd-face {
   display: grid;
-  grid-template-columns: 1fr minmax(112px, auto) 1fr;
+  grid-template-columns: 1fr minmax(88px, auto) 1fr;
   align-items: stretch;
-  margin-top: 16px;
+  margin-top: 12px;
 }
 .sd-panel {
-  min-height: 104px;
-  border-radius: 18px;
+  min-height: 78px;
+  border-radius: 16px;
   background: linear-gradient(168deg, var(--tc) 10%, color-mix(in srgb, var(--tc) 58%, #0a0f14) 100%);
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
-  padding: 10px 8px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 10px 22px -12px rgba(0, 0, 0, 0.55);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  padding: 8px 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 8px 18px -10px rgba(0, 0, 0, 0.55);
 }
 .sd-panel b {
   font-family: var(--sd-anton); font-weight: 400;
-  font-size: 30px; line-height: 1; letter-spacing: 0.05em; color: #fff;
+  font-size: 22px; line-height: 1; letter-spacing: 0.05em; color: #fff;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 .sd-panel span {
-  font-size: 10px; font-weight: 700; color: rgba(255, 255, 255, 0.88);
-  text-align: center; line-height: 1.25;
+  font-size: 9px; font-weight: 700; color: rgba(255, 255, 255, 0.88);
+  text-align: center; line-height: 1.2;
 }
 /* parallel slashes — the two panels lean into the score like a broadcast wipe */
-.sd-panel-home { clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%); }
-.sd-panel-away { clip-path: polygon(14px 0, 100% 0, 100% 100%, 0 100%); }
+.sd-panel-home { clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%); }
+.sd-panel-away { clip-path: polygon(12px 0, 100% 0, 100% 100%, 0 100%); }
 
 .sd-mid {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 0 10px;
+  padding: 0 8px;
 }
 .sd-score {
   display: flex; align-items: baseline;
   font-family: var(--sd-anton); font-weight: 400;
-  font-size: 60px; line-height: 0.9; color: #fff;
+  font-size: 44px; line-height: 0.9; color: #fff;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   text-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
 }
-.sd-score i { font-style: normal; font-size: 30px; color: rgba(255, 255, 255, 0.4); padding: 0 5px; transform: translateY(-8px); }
-.sd-vs { font-family: var(--sd-anton); font-size: 34px; color: rgba(255, 255, 255, 0.55); letter-spacing: 0.08em; }
-.sd-mid-sport {
-  margin-top: 9px;
-  font-size: 9px; font-weight: 800; letter-spacing: 0.22em; text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.66);
-}
+.sd-score i { font-style: normal; font-size: 22px; color: rgba(255, 255, 255, 0.4); padding: 0 4px; transform: translateY(-5px); }
+.sd-vs { font-family: var(--sd-anton); font-size: 26px; color: rgba(255, 255, 255, 0.55); letter-spacing: 0.08em; }
 
-.sd-board-sub { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+.sd-board-sub { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
 .sd-clockpill {
   display: inline-flex; align-items: center; gap: 7px;
   background: rgba(255, 255, 255, 0.14);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 999px; padding: 8px 14px;
+  border-radius: 999px; padding: 7px 13px;
   color: #fff;
 }
-.sd-clockpill b { font-family: var(--mono, ui-monospace); font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sd-clockpill b { font-family: var(--mono, ui-monospace); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .sd-clockpill span { font-size: 9.5px; font-weight: 800; letter-spacing: 0.1em; color: rgba(255, 255, 255, 0.75); }
 .sd-clockpill.done { background: #fff; border-color: #fff; color: var(--sd-ink); font-size: 10.5px; font-weight: 900; letter-spacing: 0.12em; }
 .sd-clockpill.idle { background: transparent; border-color: rgba(255, 255, 255, 0.3); font-size: 10.5px; font-weight: 800; letter-spacing: 0.12em; color: rgba(255, 255, 255, 0.85); }
@@ -208,27 +231,12 @@
 }
 .sd-board-sub:not(:has(.sd-ticker)) { gap: 0; }
 
-.sd-alt {
-  margin-top: 18px; padding-top: 13px;
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-}
-.sd-alt-name {
-  font-size: 10.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.72);
-}
-.sd-alt-score { display: inline-flex; align-items: baseline; font-family: var(--sd-anton); font-size: 22px; color: #fff; }
-.sd-alt-score i { font-style: normal; color: rgba(255, 255, 255, 0.4); padding: 0 3px; font-size: 15px; }
-.sd-alt-score em { font-style: normal; font-family: var(--mono, ui-monospace); font-size: 10.5px; font-weight: 700; color: var(--sd-red-onink); margin-left: 9px; }
-.sd-alt-score em.done { color: rgba(255, 255, 255, 0.6); letter-spacing: 0.08em; }
-.sd-alt-wait { font-size: 11px; font-weight: 600; color: rgba(255, 255, 255, 0.55); }
-
 .sd-board-empty {
-  margin-top: 20px; padding: 16px 0 6px;
-  display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
+  margin-top: 12px; padding: 10px 0 4px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
 }
-.sd-board-empty b { font-size: 18px; font-weight: 800; }
-.sd-board-empty span { font-size: 12.5px; color: rgba(255, 255, 255, 0.68); max-width: 34ch; line-height: 1.55; }
+.sd-board-empty b { font-size: 16px; font-weight: 800; }
+.sd-board-empty span { font-size: 12px; color: rgba(255, 255, 255, 0.68); max-width: 34ch; line-height: 1.5; }
 
 /* ---- the sheet -------------------------------------------------------------- */
 .sd-sheet {
@@ -252,6 +260,66 @@
   background: var(--sd-card); border-radius: 16px; padding: 14px 16px;
   font-size: 12.5px; font-weight: 600; color: var(--sd-ink-soft);
   box-shadow: var(--sd-shadow-sm);
+}
+
+/* ---- champions moment ------------------------------------------------------- */
+.sd-champions {
+  position: relative;
+  overflow: hidden;
+  margin: 0 0 18px;
+  padding: 16px;
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.14), transparent 28%),
+    linear-gradient(150deg, var(--sd-ink), var(--sd-ink-2));
+  color: #fff;
+  box-shadow: var(--sd-shadow-md);
+  animation: sd-champion-pop 0.6s ease both, sd-champion-flash 1.8s ease-in-out 3;
+}
+.sd-champions::before {
+  content: '';
+  position: absolute; inset: 0 0 auto 0; height: 5px;
+  background: linear-gradient(90deg,
+    #f59120 0 11.1%, #ffce00 0 22.2%, #96c93e 0 33.3%, #4ebea3 0 44.4%,
+    #3bb1e5 0 55.5%, #227d9f 0 66.6%, #8a63a9 0 77.7%, #e77bb0 0 88.8%, #ed1c24 0 100%);
+}
+.sd-champions::after {
+  content: '';
+  position: absolute; inset: -40% -20%;
+  background:
+    linear-gradient(90deg, transparent 0 12%, rgba(255,255,255,.28) 12% 13%, transparent 13% 31%, rgba(255,255,255,.2) 31% 32%, transparent 32%),
+    linear-gradient(140deg, transparent 0 18%, rgba(255,206,0,.32) 18% 19%, transparent 19% 46%, rgba(150,201,62,.28) 46% 47%, transparent 47%);
+  transform: rotate(-10deg) translateX(-18%);
+  animation: sd-confetti-sweep 1.1s ease-out both;
+  pointer-events: none;
+}
+.sd-champions-kicker {
+  position: relative; z-index: 1;
+  display: block;
+  font-size: 10px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+}
+.sd-champions-grid {
+  position: relative; z-index: 1;
+  display: grid; gap: 10px;
+  margin-top: 12px;
+}
+.sd-champion-card {
+  border-left: 5px solid var(--tc);
+  border-radius: 14px;
+  padding: 12px 13px;
+  background: rgba(255, 255, 255, 0.1);
+}
+.sd-champion-card span {
+  display: block;
+  font-size: 9.5px; font-weight: 900; letter-spacing: 0.13em; text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.66);
+}
+.sd-champion-card b {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--sd-anton);
+  font-size: 27px; line-height: 0.95; letter-spacing: 0.03em; text-transform: uppercase;
 }
 
 /* ---- up next rows ------------------------------------------------------------ */
@@ -295,22 +363,22 @@
 .sd-composer button:disabled { opacity: 0.35; cursor: not-allowed; }
 
 /* ============================================================================
-   RAIL — fixtures & schedule share the day-spine
+   RAIL — fixtures & schedule share the day-spine. Time+dot are a compact
+   label sitting above each card rather than a separate reserved column, so
+   the card itself is one full-width, symmetric block instead of being
+   squeezed off to one side next to a wide time gutter.
    ============================================================================ */
 .sd-rail { position: relative; }
-.sd-stop {
-  display: grid; grid-template-columns: 50px 1fr; gap: 10px;
-  position: relative; margin-bottom: 16px;
-}
+.sd-stop { position: relative; margin-bottom: 16px; }
 .sd-stop::before {
   content: '';
-  position: absolute; left: 24px; top: 36px; bottom: -16px; width: 2px;
+  position: absolute; left: 4px; top: 19px; bottom: -16px; width: 2px;
   background: #d9dde2;
 }
 .sd-stop:last-child::before { display: none; }
-.sd-stop-node { display: flex; flex-direction: column; align-items: center; gap: 7px; padding-top: 6px; }
+.sd-stop-node { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
 .sd-stop-time { font-family: var(--mono, ui-monospace); font-size: 11.5px; font-weight: 700; color: var(--sd-ink-soft); }
-.sd-stop-dot { width: 11px; height: 11px; border-radius: 50%; background: #c6ccd2; position: relative; z-index: 1; }
+.sd-stop-dot { width: 9px; height: 9px; border-radius: 50%; background: #c6ccd2; flex: none; position: relative; z-index: 1; }
 .sd-stop.is-live .sd-stop-dot { background: var(--sd-red); animation: sd-ring 1.6s ease-out infinite; }
 .sd-stop.is-final .sd-stop-dot { background: var(--sd-lime); }
 .sd-stop.kind-match .sd-stop-dot { background: var(--sd-sky); }
@@ -324,9 +392,7 @@
   box-shadow: var(--sd-shadow-sm);
   min-width: 0;
 }
-.sd-stop.is-live .sd-ticket {
-  box-shadow: 0 0 0 1.5px rgba(237, 28, 36, 0.32), var(--sd-shadow-md);
-}
+.sd-stop.is-live .sd-ticket { animation: sd-card-pulse 2s ease-in-out infinite; }
 .sd-ticket-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
 .sd-ticket-round { font-size: 9.5px; font-weight: 800; letter-spacing: 0.12em; color: var(--sd-ink-faint); }
 .sd-ticket-pair { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
@@ -334,19 +400,24 @@
 .sd-ticket-side b { font-size: 13.5px; font-weight: 800; color: var(--sd-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sd-ticket-pair > i { font-style: normal; font-size: 9px; font-weight: 800; letter-spacing: 0.08em; color: var(--sd-ink-faint); flex: none; }
 
-.sd-ticket-sports { display: flex; flex-direction: column; gap: 7px; }
+.sd-ticket-sports { display: flex; flex-direction: column; gap: 9px; }
 .sd-srow {
   display: flex; align-items: center; gap: 10px;
   background: #f2f4f6; border-radius: 12px; padding: 10px 13px;
 }
+.sd-srow-soccer { background: color-mix(in srgb, var(--sport-soccer) 8%, #f2f4f6); }
+.sd-srow-netball { background: color-mix(in srgb, var(--sport-netball) 10%, #f2f4f6); }
 .sd-srow-name {
-  flex: none; padding-left: 6px;
-  font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
-  color: #575d64;
-  border-left: 3px solid var(--srow-accent, transparent);
+  flex: none;
+  padding: 4px 9px; border-radius: 999px;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+  color: #fff;
+  background: var(--srow-accent, var(--stadio-grey-secondary));
 }
-.sd-srow-soccer .sd-srow-name { --srow-accent: var(--sd-sky); }
-.sd-srow-netball .sd-srow-name { --srow-accent: var(--sd-pink); }
+.sd-srow-soccer .sd-srow-name { --srow-accent: var(--sport-soccer); }
+.sd-srow-netball .sd-srow-name { --srow-accent: var(--sport-netball); }
+.sd-srow-pair { font-size: 10.5px; font-weight: 700; color: var(--sd-ink-soft); }
+.sd-srow-pair i { font-style: normal; color: var(--sd-ink-faint); }
 .sd-srow-clock { margin-left: auto; font-family: var(--mono, ui-monospace); font-size: 11.5px; font-weight: 700; color: var(--sd-red); }
 .sd-srow-score { margin-left: auto; display: inline-flex; align-items: baseline; font-family: var(--sd-anton); font-size: 21px; color: var(--sd-ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .sd-srow-clock + .sd-srow-score { margin-left: 10px; }
@@ -369,9 +440,21 @@
   color: #fff; border-radius: 5px; padding: 2px 6px;
 }
 .sd-ev-yellow { background: #fff7db; border-color: #efe0a4; }
-.sd-ev-yellow .sd-ev-kind { background: #d9a900; color: #2e2200; }
+.sd-ev-yellow .sd-ev-kind { background: var(--card-yellow); color: #2e2200; }
 .sd-ev-red { background: #fdecec; border-color: #f2bcbc; }
-.sd-ev-red .sd-ev-kind { background: var(--sd-red); }
+.sd-ev-red .sd-ev-kind { background: var(--card-red); }
+
+/* Scorer chips carry their team's colour (§6) so it's readable at a glance
+   which side a goal belongs to. Unattributed ones (name still null) get a
+   dashed, inviting "tap me" treatment instead of a settled solid chip. */
+.sd-ev-scorer { border-left: 3px solid var(--tc, transparent); }
+.sd-ev-scorer.is-unattributed {
+  border-style: dashed; border-left-style: solid;
+  border-color: var(--tc, var(--sd-ink-faint));
+  background: color-mix(in srgb, var(--tc, #fff) 7%, #fff);
+}
+.sd-ev-label { display: inline; background: none; border: none; padding: 0; margin: 0; font: inherit; color: inherit; cursor: pointer; }
+.sd-ev-scorer.is-unattributed .sd-ev-label { color: var(--sd-ink-soft); font-style: italic; }
 .sd-ev-x {
   display: inline-grid; place-items: center;
   width: 18px; height: 18px; margin: -2px -5px -2px 1px;
@@ -382,21 +465,44 @@
 /* ============================================================================
    SCOREKEEPER REMOTE
    ============================================================================ */
-.sd-sk { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+.sd-sk { display: flex; flex-direction: column; gap: 18px; margin-top: 12px; }
 .sd-sk-note { font-size: 12px; font-weight: 600; color: var(--sd-ink-faint); padding: 8px 2px 0; }
+.sd-publish-error { color: var(--sd-red); font-weight: 800; }
+.sd-write-error {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 8px 10px; background: color-mix(in srgb, var(--sd-red) 10%, transparent);
+  border-radius: 10px;
+}
+.sd-write-error .sd-picker-cancel { width: auto; min-height: 0; margin-top: 0; flex-shrink: 0; }
+.sd-demo-publish-note { color: #8a5a12; }
 
+/* Panel differentiation (§4) — each sport gets a tinted panel with a coloured
+   top edge, not just a thin border accent, so soccer and netball read as
+   obviously separate without needing to know the tool first. */
 .sd-remote {
-  background: #f2f4f6; border: 1px solid #e7eaee; border-radius: 16px; padding: 12px;
+  background: #f2f4f6; border: 1px solid #e7eaee; border-top: 3px solid transparent;
+  border-radius: 16px; padding: 12px;
+}
+.sd-remote-soccer {
+  background: color-mix(in srgb, var(--sport-soccer) 8%, #f2f4f6);
+  border-color: color-mix(in srgb, var(--sport-soccer) 32%, #e7eaee);
+  border-top-color: var(--sport-soccer);
+}
+.sd-remote-netball {
+  background: color-mix(in srgb, var(--sport-netball) 10%, #f2f4f6);
+  border-color: color-mix(in srgb, var(--sport-netball) 32%, #e7eaee);
+  border-top-color: var(--sport-netball);
 }
 .sd-remote-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px; }
 .sd-remote-sport {
-  padding-left: 8px;
+  display: inline-flex; align-items: center;
+  padding: 5px 11px; border-radius: 999px;
   font-size: 11.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase;
-  color: #454b52;
-  border-left: 3px solid var(--remote-accent, transparent);
+  color: #fff;
+  background: var(--remote-accent, var(--stadio-grey-secondary));
 }
-.sd-remote-soccer .sd-remote-sport { --remote-accent: var(--sd-sky); }
-.sd-remote-netball .sd-remote-sport { --remote-accent: var(--sd-pink); }
+.sd-remote-soccer .sd-remote-sport { --remote-accent: var(--sport-soccer); }
+.sd-remote-netball .sd-remote-sport { --remote-accent: var(--sport-netball); }
 
 .sd-kickoff {
   width: 100%; min-height: 60px;
@@ -426,9 +532,21 @@
 .sd-clockbtn.go { background: var(--sd-lime); color: #1d2b07; }
 .sd-clockbtn.half { background: var(--sd-sky); color: #08243a; }
 .sd-clockbtn.reset { background: rgba(255,255,255,.14); color: #fff; }
+.sd-clockbtn.reset.is-armed { background: var(--sd-red); color: #fff; }
+.sd-clockbtn.cancel { background: rgba(255,255,255,.06); color: rgba(255,255,255,.65); }
 .sd-clockactions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 9px; }
 .sd-clockactions .sd-clockbtn { justify-content: center; padding: 0 8px; }
-.sd-half-alert { margin: 7px 0 0; padding: 8px 10px; border-radius: 10px; background: #fff3cd; border: 1px solid #eed27b; color: #684f00; font-size: 11.5px; font-weight: 900; }
+/* Halftime/full-time alarm (§1) — full-panel pulse, scorekeeper view only.
+   Distinguished from the yellow-card badge by scale + motion, not hue: the
+   whole remote flashes, not just a chip. Stops the moment Pause is pressed
+   (is-alarm is only applied while isAlarmActive() is true). */
+.sd-remote.is-alarm { animation: sd-alarm-ring 1s ease-in-out infinite; }
+.sd-alarm {
+  margin: 7px 0 0; padding: 10px 12px; border-radius: 10px;
+  background: var(--alarm-halftime); color: #3a2b00; text-align: center;
+  font-size: 12.5px; font-weight: 900; letter-spacing: 0.04em;
+  animation: sd-alarm-pulse 1s ease-in-out infinite;
+}
 
 .sd-sk-score { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 14px 0; }
 .sd-sk-code {
@@ -473,6 +591,7 @@
   background: linear-gradient(150deg, var(--sd-ink), var(--sd-ink-2));
   color: #fff; font-size: 13px; font-weight: 800;
 }
+.sd-publish.is-armed { background: linear-gradient(150deg, var(--sd-red), #9c0f15); }
 .sd-reopen {
   width: 100%; min-height: 44px; margin-top: 10px;
   border: 1px solid var(--sd-line); border-radius: 14px; background: var(--sd-card);
@@ -529,8 +648,8 @@
   font-size: 13px; font-weight: 700; color: var(--sd-ink-soft);
 }
 .sd-seg button.active { background: var(--tc, var(--sd-ink)); color: #fff; }
-.sd-seg button.active.card-y { background: #ffcd00; color: #3a2b00; }
-.sd-seg button.active.card-r { background: var(--sd-red); color: #fff; }
+.sd-seg button.active.card-y { background: var(--card-yellow); color: #3a2b00; }
+.sd-seg button.active.card-r { background: var(--card-red); color: #fff; }
 .sd-seg-sport { background: var(--sd-card); padding: 5px; margin-bottom: 16px; box-shadow: var(--sd-shadow-sm); }
 .sd-seg-sport button { min-height: 46px; }
 
@@ -596,7 +715,12 @@
   border-radius: 999px; padding: 5px 10px;
   animation: sd-pulse 1.3s ease-in-out infinite;
 }
-.sd-stop.is-now .sd-slot { box-shadow: 0 0 0 1.5px rgba(237, 28, 36, 0.3), var(--sd-shadow-md); }
+.sd-stop.is-now .sd-slot, .sd-stop.is-live .sd-slot { animation: sd-card-pulse 2s ease-in-out infinite; }
+/* Striking a published result off the day schedule (§8) — same "done" signal
+   as the collapsed Published games rail on Fixtures, just dimmed in place
+   here instead of moving rows around a fixed program order. */
+.sd-stop.is-final .sd-slot { opacity: 0.75; }
+.sd-stop.is-final .sd-slot-body b { text-decoration: line-through; text-decoration-color: var(--sd-ink-faint); }
 
 /* ---- empty state — left-aligned, no icon ---------------------------------------- */
 .sd-empty {
@@ -621,8 +745,8 @@
 .sd-tabbar button {
   position: relative;
   appearance: none; border: none; background: none; cursor: pointer;
-  min-height: 46px; padding: 8px 0 4px;
-  display: flex; align-items: center; justify-content: flex-start; text-align: left; padding-left: 12px;
+  min-height: 46px; padding: 8px 4px 4px;
+  display: flex; align-items: center; justify-content: center; text-align: center;
   color: #8b9097; font-family: inherit; font-size: 12.5px; font-weight: 700; letter-spacing: 0.01em;
   transition: color 0.15s ease;
 }
@@ -635,6 +759,58 @@
 }
 .sd-tabbar button.active { color: var(--tab-accent, var(--sd-ink)); font-weight: 800; }
 .sd-tabbar button.active::before { transform: translateX(-50%) scaleX(1); }
+
+/* ---- scorekeeper desk ------------------------------------------------------- */
+.sd-sk-context { display: none; }
+.sd-published-games { margin-top: 20px; }
+.sd-published-games summary { display: flex; align-items: center; gap: 8px; cursor: pointer; list-style: none; padding: 13px 16px; border: 1px solid var(--sd-line); border-radius: 14px; background: var(--sd-card); font-size: 12px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: var(--sd-ink-soft); }
+.sd-published-games summary::-webkit-details-marker { display: none; }
+.sd-published-games summary::before { content: 'Show'; font-size: 10px; color: var(--sd-ink-faint); }
+.sd-published-games[open] summary::before { content: 'Hide'; }
+.sd-published-games summary span { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: #e8ebee; font-size: 10px; color: var(--sd-ink); }
+.sd-rail-published { margin-top: 12px; opacity: .78; }
+
+@media (min-width: 900px) {
+  body { background: #dfe4e8; }
+  .sd-app { max-width: none; min-height: 100vh; }
+  .sd-scroll { min-height: 100vh; }
+  .sd-header { padding-left: max(32px, calc((100vw - 1400px) / 2)); padding-right: max(32px, calc((100vw - 1400px) / 2)); }
+  .sd-sheet-page { max-width: 1400px; margin-left: auto; margin-right: auto; border-radius: 26px 26px 0 0; }
+  .sd-tabbar { max-width: none; grid-template-columns: repeat(var(--tabs, 4), minmax(120px, 160px)); justify-content: center; }
+
+  .sd-scorekeeper-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; }
+  .sd-scorekeeper-layout .sd-rail { min-width: 0; }
+  .sd-scorekeeper-layout .sd-published-games { grid-column: 1; }
+  .sd-scorekeeper-layout .sd-ticket { padding: 22px; }
+  .sd-scorekeeper-layout .sd-sk { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .sd-scorekeeper-layout .sd-remote { margin: 0; }
+  .sd-scorekeeper-layout .sd-picker-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 300px; }
+  .sd-scorekeeper-layout .sd-picker-list .sd-picker-unknown { grid-column: 1 / -1; }
+
+  /* Grid auto-placement would otherwise slot this aside into whichever row
+     .sd-published-games lands on (it's pinned to grid-column:1), pushing the
+     panel down and out of view as more games get published. Spanning every
+     row keeps its sticky cell anchored at the grid's top for the full scroll. */
+  .sd-sk-context { display: block; grid-column: 2; grid-row: 1 / -1; position: sticky; top: 18px; padding: 18px; background: var(--sd-card); border: 1px solid var(--sd-line); border-radius: 18px; box-shadow: var(--sd-shadow-md); }
+  .sd-sk-context-head { display: flex; flex-direction: column; gap: 3px; padding-bottom: 14px; border-bottom: 1px solid var(--sd-line); }
+  .sd-sk-context-head span { font-family: var(--sd-anton); font-size: 20px; letter-spacing: 0.03em; text-transform: uppercase; color: var(--sd-ink); }
+  .sd-sk-context-head small { font-size: 11px; font-weight: 700; color: var(--sd-ink-soft); }
+  .sd-sk-context-section { margin-top: 18px; }
+  .sd-sk-context-section > b { display: block; margin-bottom: 9px; font-size: 10px; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; color: var(--sd-ink-faint); }
+  .sd-sk-fixture-list, .sd-sk-table { display: flex; flex-direction: column; gap: 5px; }
+  .sd-sk-fixture { display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 7px; min-height: 30px; padding: 0 7px; border-radius: 7px; background: #f5f7f8; }
+  .sd-sk-fixture > span { font-family: var(--mono, ui-monospace); font-size: 10px; font-weight: 800; color: var(--sd-ink-faint); }
+  .sd-sk-fixture b { font-size: 11.5px; color: var(--sd-ink); }
+  .sd-sk-fixture b i { font-style: normal; color: var(--sd-ink-faint); }
+  .sd-sk-fixture small { font-size: 9px; font-weight: 900; letter-spacing: .06em; color: var(--sd-ink-soft); }
+  .sd-sk-fixture.is-live { background: color-mix(in srgb, var(--sd-red) 12%, #fff); }
+  .sd-sk-fixture.is-live small { color: var(--sd-red); }
+  .sd-sk-fixture.is-final { opacity: .65; }
+  .sd-sk-table > div { display: grid; grid-template-columns: 22px 1fr auto auto; gap: 7px; align-items: center; min-height: 29px; padding: 0 7px; border-left: 3px solid var(--tc); background: #f5f7f8; }
+  .sd-sk-table span, .sd-sk-table small, .sd-sk-table strong { font-size: 10px; font-weight: 800; color: var(--sd-ink-soft); }
+  .sd-sk-table b { font-size: 11px; color: var(--sd-ink); }
+  .sd-sk-table strong { color: var(--sd-ink); }
+}
 
 /* ---- reused classic pieces inside the Stardial shell ------------------------------ */
 :root[data-skin="stardial"] .mgr-btn-primary {
@@ -659,6 +835,13 @@
   0% { box-shadow: 0 0 0 0 rgba(237, 28, 36, 0.45); }
   100% { box-shadow: 0 0 0 9px rgba(237, 28, 36, 0); }
 }
+/* Live card outer-rim pulse (§7) — same red "breathing" ring as the rail's
+   live dot (sd-ring), just slower and layered under the card's own resting
+   shadow so it never disappears between pulses. */
+@keyframes sd-card-pulse {
+  0%, 100% { box-shadow: 0 0 0 1.5px rgba(237, 28, 36, 0.35), 0 0 0 0 rgba(237, 28, 36, 0.25), var(--sd-shadow-md); }
+  50% { box-shadow: 0 0 0 1.5px rgba(237, 28, 36, 0.55), 0 0 0 6px rgba(237, 28, 36, 0), var(--sd-shadow-md); }
+}
 @keyframes sd-pop {
   0% { transform: scale(1); }
   35% { transform: scale(1.28); filter: brightness(1.3); }
@@ -666,6 +849,28 @@
 }
 .sd-pop { display: inline-block; animation: sd-pop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.4); }
 
+@keyframes sd-alarm-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+@keyframes sd-alarm-ring {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(254, 221, 0, 0); background-color: #f2f4f6; }
+  50% { box-shadow: 0 0 0 3px rgba(254, 221, 0, 0.85); background-color: color-mix(in srgb, var(--alarm-halftime) 22%, #f2f4f6); }
+}
+@keyframes sd-champion-pop {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes sd-champion-flash {
+  0%, 100% { box-shadow: var(--sd-shadow-md); }
+  45% { box-shadow: 0 0 0 3px rgba(255, 206, 0, 0.55), 0 18px 36px -16px rgba(16, 22, 29, 0.34); }
+}
+@keyframes sd-confetti-sweep {
+  from { opacity: 0; transform: rotate(-10deg) translateX(-38%); }
+  20% { opacity: 1; }
+  to { opacity: 0; transform: rotate(-10deg) translateX(28%); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sd-tabbar button, .sd-tabbar button::before { transition: none; }
+  .sd-alarm, .sd-remote.is-alarm { animation: none; }
+  .sd-ticket, .sd-slot { animation: none; }
+  .sd-champions, .sd-champions::after { animation: none; }
 }

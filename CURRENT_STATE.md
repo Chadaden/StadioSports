@@ -3,6 +3,54 @@
 This file is the hand-off point for future agents. Do not rebuild the app from
 an older PR or re-enable the classic skin.
 
+## Live now — 4 August 2026 (supersedes the baseline below)
+
+- **6 August 2026 demo update on this branch:** Centurion netball public roster
+  from `Centurion_netball.xlsx` is now in `src/data/seed.js` and was
+  field-backfilled to live Firestore with
+  `npm run backfill:centurion-netball -- --apply` (9/9 player docs verified).
+  The sensitive spreadsheet columns were deliberately not committed. Hosting
+  was redeployed after adding a temporary scorekeeper instant-publish bypass
+  (`DEMO_INSTANT_PUBLISH_ENABLED = true` in `src/lib/matchState.js`) so Chad
+  can start a match, add a few demo goals, and publish immediately during the
+  stakeholder walkthrough. Remove that flag after Chad confirms the demo
+  window is closed. The spectator Live tab now shows a “These are the
+  champions” banner for each sport once the published final (`round: final`,
+  `m8`) has a non-drawn result.
+- **What's actually deployed:** branch `fix/DAW-34-scorekeeper-finalisation`,
+  tracked by [PR #11](https://github.com/Chadaden/StadioSports/pull/11) — not
+  `main`. `main` is still at the 20 July baseline (`14f0400`) and is missing
+  everything below. Until PR #11 merges, treat
+  `fix/DAW-34-scorekeeper-finalisation` (not `main`) as the branch to
+  continue from.
+- **What shipped today**, in order, each built/tested/deployed individually:
+  - `3194d96`/`ba5dba6`/`90e964c`/`2ba98d6`/`1819407`/`aeaf3fe`/`051ebe4`/`18ee50b`
+    — the halftime/full-time alarm, pause-synced sin-bins, deferred scorer
+    attribution, tournament round-robin → knockout auto-population, and the
+    laptop scorekeeper workspace (§ STADIO-change-spec.md Part A). This is the
+    work the rest of this file's "20 July" baseline predates.
+  - `9e8223c` — Publish/Reset were gated behind `window.confirm()`, which
+    returns `false` silently in some tablet/PWA contexts with no error shown.
+    Replaced with an in-app two-tap confirm.
+  - `8c0fafa` — the real publish bug: `publishSport`'s live-mode transaction
+    called `transaction.get()` on a whole-collection Query, which the
+    Firestore Web SDK doesn't support for transactions — it threw on every
+    call, and because the write action was never awaited/caught, the failure
+    was completely silent. Fixed by reading each fixture individually.
+    Reproduced and verified live against production before and after.
+  - `b5dffa1` — Match-day reference panel sticky-position bug (grid
+    auto-placement was pushing it into whatever row Published Games landed
+    on), Schedule tab wired to real fixture status (it was a fully static
+    render before — published results never showed there), Fixtures/Schedule
+    card layout made full-width/symmetric (time+dot moved off into a label
+    above the card instead of a reserved side column), live-card pulse, and
+    bottom tab bar centering.
+- **Not done / open follow-ups:** PR #11 not yet merged; `main` not updated;
+  user mentioned intending to make their own small mobile UI tweaks
+  separately. A stray player name in live Firestore data reads literally
+  "Bono hyphen Kholophe" — looks like a data-import artifact, not a code bug;
+  unconfirmed whether it's real or test data.
+
 ## Client-approved baseline — 20 July 2026
 
 - The client has approved the current production UI and functionality as the
@@ -12,9 +60,12 @@ an older PR or re-enable the classic skin.
 - The exact approved and deployed runtime is permanently marked by Git tag
   `stadio-approved-baseline-2026-07-20` at commit
   `14f040057260d2f24d6f0dc4e0ca427a8507229b`.
-- Future work must start from `main` and preserve this behaviour unless the
-  client explicitly requests a change. Never restore code from a superseded
-  branch over `main`.
+- **Superseded 4 August 2026 — see the section above.** This paragraph
+  originally said future work must start from `main`; that's no longer true,
+  since `main` was never updated with the 4 August work and isn't what's
+  deployed. Start from `fix/DAW-34-scorekeeper-finalisation` instead until
+  that branch is merged. The "never restore a superseded branch over `main`"
+  rule below still holds in spirit — don't drop *this* branch's work either.
 - Documentation-only commits after this marker do not change the approved
   production runtime.
 
@@ -87,7 +138,11 @@ profiles.
 - PR #8 completed manager private-profile readiness.
 - PR #9 fixed the player-card viewport and is the approved deployed runtime.
 - Superseded remote working branches were removed after the approved tag was
-  pushed. `main` is the only continuing source branch.
+  pushed, and at the time this was written `main` was the only continuing
+  source branch. That changed 4 August 2026 — see "Live now" at the top of
+  this file.
+- PR #11 tracks `fix/DAW-34-scorekeeper-finalisation` — tournament
+  auto-population, publish-flow fixes, and UI polish. Not yet merged.
 
 ## Release verification
 

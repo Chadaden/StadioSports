@@ -4,45 +4,138 @@
 // each ticket (SdSkControls) and the existing MANCO report button/modal.
 // Icon-free: sports are named, states are words, colour carries identity.
 
+import { useMemo } from 'react'
 import { useData, useTeamMap } from '../../store/DataProvider'
 import { useIsScorekeeper } from '../../store/RoleContext'
 import { formatClock, useClockTick } from '../../lib/clock'
+import { fixtureDisplayGroups } from '../../lib/fixtureOrder'
+import { fixtureOverallStatus, headlinePairing, sportHomeAwayIds } from '../../lib/matchState'
+import { computeStandings } from '../../lib/standings'
 import { MancoReportButton } from '../../screens/MancoReport'
 import { SdCrest, StatusTag } from './bits'
 import SdSkControls from './SkControls'
 
 const ROUND_LABEL = { roundRobin: 'ROUND ROBIN', playoff: '3RD/4TH PLAYOFF', final: 'FINAL' }
+const SPORTS = ['soccer', 'netball']
 
 export default function SdFixturesScreen() {
-  const { fixtures = [] } = useData()
+  const { fixtures = [], teams: teamList = [], event } = useData()
   const teams = useTeamMap()
   const isScorekeeper = useIsScorekeeper()
+  const { active, published } = fixtureDisplayGroups(fixtures)
 
   return (
     <>
       {isScorekeeper && <MancoReportButton />}
-      <div className="sd-rail">
-        {fixtures.map((f) => (
-          <FixtureTicket key={f.id} fixture={f} teams={teams} showControls={isScorekeeper} />
-        ))}
+      <div className={isScorekeeper ? 'sd-scorekeeper-layout' : undefined}>
+        <div className="sd-rail">
+          {active.map((f) => (
+            <FixtureTicket key={f.id} fixture={f} teams={teams} showControls={isScorekeeper} />
+          ))}
+        </div>
+        {published.length > 0 && (
+          <details className="sd-published-games">
+            <summary>Published games <span>{published.length}</span></summary>
+            <div className="sd-rail sd-rail-published">
+              {published.map((f) => (
+                <FixtureTicket key={f.id} fixture={f} teams={teams} showControls={isScorekeeper} />
+              ))}
+            </div>
+          </details>
+        )}
+        {isScorekeeper && <ScorekeeperContext fixtures={active} standingsFixtures={fixtures} teams={teamList} event={event} />}
       </div>
     </>
   )
 }
 
+function ScorekeeperContext({ fixtures, standingsFixtures, teams, event }) {
+  return (
+    <aside className="sd-sk-context" aria-label="Match-day reference">
+      <div className="sd-sk-context-head">
+        <span>Match-day reference</span>
+        <small>Live and upcoming fixtures</small>
+      </div>
+
+      <section className="sd-sk-context-section">
+        <b>Fixture progress</b>
+        <div className="sd-sk-fixture-list">
+          {fixtures.map((fixture) => {
+            const { homeTeamId, awayTeamId } = headlinePairing(fixture)
+            const home = teams.find((team) => team.id === homeTeamId)
+            const away = teams.find((team) => team.id === awayTeamId)
+            const live = fixture.soccer?.status === 'live' || fixture.netball?.status === 'live'
+            const final = fixture.soccer?.status === 'final' && fixture.netball?.status === 'final'
+            return (
+              <div className={`sd-sk-fixture${live ? ' is-live' : ''}${final ? ' is-final' : ''}`} key={fixture.id}>
+                <span>M{fixture.matchNo}</span>
+                <b>{home?.code || 'TBD'} <i>v</i> {away?.code || 'TBD'}</b>
+                <small>{live ? 'LIVE' : final ? 'DONE' : fixture.slotTime}</small>
+              </div>
+            )
+          })}
+        </div>
+      </section>
+
+      {['soccer', 'netball'].map((sport) => (
+        <CompactTable key={sport} sport={sport} fixtures={standingsFixtures} teams={teams} event={event} />
+      ))}
+    </aside>
+  )
+}
+
+function CompactTable({ sport, fixtures, teams, event }) {
+  // computeStandings (plus its own head-to-head pass) only ever reads
+  // round-robin fixtures' FINAL results for this sport — live scores, cards,
+  // clocks and playoff/final pairings don't affect it. This component
+  // re-renders on every fixtures update, i.e. every goal/card/clock write
+  // from any scorekeeper device, so recomputing the full table each time is
+  // wasted work on a device meant to stay open for hours. Memoize on a
+  // lightweight signature of just the round-robin results instead, so a
+  // mid-match tick doesn't retrigger the rebuild.
+  const resultsSignature = useMemo(
+    () => fixtures
+      .filter((fx) => fx.round === 'roundRobin')
+      .map((fx) => {
+        const s = fx[sport]
+        return s?.status === 'final' ? `${fx.id}:${s.home}-${s.away}` : `${fx.id}:_`
+      })
+      .join('|'),
+    [fixtures, sport],
+  )
+  // resultsSignature stands in for `fixtures` here: it only changes when a
+  // round-robin result for this sport does, which is the only part of
+  // `fixtures` computeStandings reads.
+  const rows = useMemo(
+    () => computeStandings(sport, fixtures, teams, event),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [resultsSignature, sport, teams, event],
+  )
+  return (
+    <section className="sd-sk-context-section">
+      <b>{sport} table</b>
+      <div className="sd-sk-table">
+        {rows.map((row) => (
+          <div key={row.team.id} style={{ '--tc': row.team.colorHex }}>
+            <span>{row.rank}</span><b>{row.team.code}</b><small>{row.played} played</small><strong>{row.points} pts</strong>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 function FixtureTicket({ fixture, teams, showControls }) {
-  const home = teams[fixture.homeTeamId]
-  const away = teams[fixture.awayTeamId]
-  const status =
-    fixture.soccer?.status === 'live' || fixture.netball?.status === 'live' ? 'live'
-    : fixture.soccer?.status === 'final' && fixture.netball?.status === 'final' ? 'final'
-    : 'upcoming'
+  const { homeTeamId, awayTeamId } = headlinePairing(fixture)
+  const home = teams[homeTeamId]
+  const away = teams[awayTeamId]
+  const status = fixtureOverallStatus(fixture)
 
   return (
     <div className={`sd-stop is-${status}`}>
       <div className="sd-stop-node">
-        <span className="sd-stop-time">{fixture.slotTime}</span>
         <span className="sd-stop-dot" />
+        <span className="sd-stop-time">{fixture.slotTime}</span>
       </div>
 
       <div className="sd-ticket">
@@ -64,8 +157,10 @@ function FixtureTicket({ fixture, teams, showControls }) {
         </div>
 
         <div className="sd-ticket-sports">
-          {['soccer', 'netball'].map((sport) => (
-            <SportScoreRow key={sport} sport={sport} data={fixture[sport]} viewer={!showControls} />
+          {SPORTS.map((sport) => (
+            <SportScoreRow key={sport} fixture={fixture} sport={sport} teams={teams}
+              headlineHomeTeamId={homeTeamId} headlineAwayTeamId={awayTeamId}
+              viewer={!showControls} />
           ))}
         </div>
 
@@ -75,14 +170,25 @@ function FixtureTicket({ fixture, teams, showControls }) {
   )
 }
 
-function SportScoreRow({ sport, data, viewer }) {
+function SportScoreRow({ fixture, sport, teams, headlineHomeTeamId, headlineAwayTeamId, viewer }) {
+  const data = fixture[sport]
   const now = useClockTick(data?.clock)
   const live = data?.status === 'live'
   const show = live || data?.status === 'final'
+  const { homeTeamId, awayTeamId } = sportHomeAwayIds(fixture, sport)
+  // Only the rare case where this sport's own pairing (§8) doesn't match the
+  // ticket's headline pairing needs its own label — otherwise it'd just repeat
+  // what the header already says.
+  const diverges = Boolean(homeTeamId) && Boolean(awayTeamId)
+    && (homeTeamId !== headlineHomeTeamId || awayTeamId !== headlineAwayTeamId)
+
   return (
     <>
       <div className={`sd-srow sd-srow-${sport}${live ? ' is-live' : ''}`}>
         <span className="sd-srow-name">{sport}</span>
+        {diverges && (
+          <span className="sd-srow-pair">{teams[homeTeamId]?.code || 'TBD'} <i>v</i> {teams[awayTeamId]?.code || 'TBD'}</span>
+        )}
         {live && data.clock && (
           <span className="sd-srow-clock">{formatClock(data.clock, now)}</span>
         )}
